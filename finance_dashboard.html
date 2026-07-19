@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Management Report — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<style>
+:root{
+  --navy:#1E2761;
+  --navy-2:#293575;
+  --ice:#CADCFC;
+  --ice-2:#8FA8D9;
+  --bg:#F4F7FD;
+  --text:#1E293B;
+  --teal:#0D9488;
+  --red:#DC2626;
+  --amber:#D97706;
+  --green:#16A34A;
+  --red-bg:#FEF2F2;
+  --border:#E2E8F0;
+  --white:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:-apple-system,"Segoe UI",Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  min-height:100vh;
+}
+/* ---------- Sidebar ---------- */
+#sidebar{
+  width:230px;
+  min-width:230px;
+  background:var(--navy);
+  color:var(--white);
+  padding:24px 0;
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow-y:auto;
+}
+#sidebar .brand{
+  padding:0 20px 20px 20px;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+  margin-bottom:12px;
+}
+#sidebar .brand h1{font-size:15px;font-weight:700;line-height:1.3;}
+#sidebar .brand p{font-size:11px;color:var(--ice);margin-top:4px;}
+.navitem{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 20px;
+  font-size:13.5px;
+  color:var(--ice);
+  cursor:pointer;
+  border-left:3px solid transparent;
+  transition:background .15s;
+}
+.navitem .num{font-size:10px;opacity:.7;width:18px;}
+.navitem:hover{background:rgba(255,255,255,0.06);}
+.navitem.active{background:rgba(255,255,255,0.1);color:var(--white);border-left-color:var(--teal);font-weight:600;}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;}
+#topbar{
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  padding:14px 28px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;top:0;z-index:5;
+}
+#topbar h2{font-size:18px;color:var(--navy);}
+#topbar .sub{font-size:12px;color:#64748B;margin-top:2px;}
+#statusArea{display:flex;align-items:center;gap:14px;font-size:12px;color:#64748B;}
+#refreshBtn{
+  background:var(--navy);color:#fff;border:none;border-radius:6px;
+  padding:8px 14px;font-size:12.5px;cursor:pointer;font-weight:600;
+}
+#refreshBtn:hover{background:var(--navy-2);}
+#content{padding:24px 28px 60px 28px;}
+.section{display:none;}
+.section.active{display:block;}
+
+.section-header{margin-bottom:18px;}
+.section-header .tag{
+  display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;
+  color:var(--teal);text-transform:uppercase;margin-bottom:4px;
+}
+.section-header h3{font-size:22px;color:var(--navy);}
+.section-header .desc{font-size:13px;color:#64748B;margin-top:3px;}
+
+.grid{display:grid;gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr);}.grid-3{grid-template-columns:repeat(2,1fr);}}
+
+.card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:16px 18px;
+}
+.kpi-card .label{font-size:11.5px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+.kpi-card .value{font-size:24px;font-weight:700;color:var(--navy);margin-top:6px;}
+.kpi-card .foot{font-size:11.5px;margin-top:6px;color:#64748B;}
+.kpi-card .value.pos{color:var(--green);}
+.kpi-card .value.neg{color:var(--red);}
+.kpi-card .value.warn{color:var(--amber);}
+
+.chart-card{padding:18px;}
+.chart-card h4{font-size:13.5px;color:var(--navy);margin-bottom:12px;font-weight:700;}
+.chart-wrap{position:relative;height:280px;}
+.chart-wrap.short{height:210px;}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+table th{
+  text-align:left;padding:8px 10px;background:var(--bg);color:var(--navy);
+  font-weight:700;border-bottom:1px solid var(--border);font-size:11.5px;text-transform:uppercase;letter-spacing:.02em;
+}
+table td{padding:8px 10px;border-bottom:1px solid var(--border);}
+table tr:last-child td{border-bottom:none;}
+table tr.total td{font-weight:700;background:var(--bg);}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.pos{color:var(--green);}
+.neg{color:var(--red);}
+
+.pills{display:flex;gap:6px;margin-bottom:14px;}
+.pill{
+  padding:6px 14px;border-radius:999px;border:1px solid var(--border);
+  background:var(--white);font-size:12.5px;cursor:pointer;font-weight:600;color:#64748B;
+}
+.pill.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+.insight-card{border-left:4px solid var(--teal);}
+.insight-card.alert{border-left-color:var(--red);background:var(--red-bg);}
+.insight-card.warn{border-left-color:var(--amber);}
+.insight-card h5{font-size:12.5px;color:var(--navy);font-weight:700;margin-bottom:6px;letter-spacing:.02em;}
+.insight-card p{font-size:12.5px;color:var(--text);line-height:1.5;}
+
+.badge{display:inline-block;padding:3px 9px;border-radius:5px;font-size:10.5px;font-weight:700;letter-spacing:.03em;}
+.badge.alta{background:var(--red-bg);color:var(--red);}
+.badge.media{background:#FEF3C7;color:var(--amber);}
+.badge.baja{background:#ECFDF5;color:var(--green);}
+
+#loadOverlay{
+  position:fixed;inset:0;background:rgba(244,247,253,0.95);z-index:50;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+}
+.spinner{width:36px;height:36px;border:4px solid var(--ice);border-top-color:var(--navy);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loadOverlay p{font-size:13px;color:var(--navy);font-weight:600;}
+#errorBanner{
+  display:none;background:var(--red-bg);border:1px solid #FCA5A5;color:var(--red);
+  padding:12px 16px;border-radius:8px;font-size:12.5px;margin-bottom:18px;line-height:1.5;
+}
+.small-note{font-size:11.5px;color:#94A3B8;margin-top:10px;}
+</style>
+</head>
+<body>
+
+<div id="loadOverlay">
+  <div class="spinner"></div>
+  <p id="loadMsg">Cargando datos en vivo desde Google Sheets…</p>
+</div>
+
+<div id="sidebar">
+  <div class="brand">
+    <h1>Portfolio Management Report</h1>
+    <p>Finanzas Personales & Cartera</p>
+  </div>
+  <div class="navitem active" data-section="resumen"><span class="num">01</span> Resumen</div>
+  <div class="navitem" data-section="mesactual"><span class="num">01B</span> Monthly Report</div>
+  <div class="navitem" data-section="pl"><span class="num">02</span> Income Statement</div>
+  <div class="navitem" data-section="plsheet"><span class="num">02B</span> P&amp;L</div>
+  <div class="navitem" data-section="gastos"><span class="num">03</span> Costs</div>
+  <div class="navitem" data-section="cashflow"><span class="num">04</span> Cash Flow</div>
+  <div class="navitem" data-section="balance"><span class="num">05</span> Balance Sheet</div>
+  <div class="navitem" data-section="inversiones"><span class="num">06</span> Investment Portfolio</div>
+  <div class="navitem" data-section="budget"><span class="num">07</span> Budget</div>
+  <div class="navitem" data-section="ratios"><span class="num">08</span> Ratios</div>
+  <div class="navitem" data-section="forecast"><span class="num">09</span> Forecast</div>
+  <div class="navitem" data-section="insights"><span class="num">10</span> Insights</div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div>
+      <h2 id="pageTitle">Resumen</h2>
+      <div class="sub" id="pageSub">Datos en vivo · INC. STA. SHEET &amp; Trades Sheet vía Apps Script</div>
+    </div>
+    <div id="statusArea">
+      <span id="lastUpdated">—</span>
+      <button id="refreshBtn">↻ Actualizar</button>
+    </div>
+  </div>
+  <div id="content">
+    <div id="errorBanner"></div>
+    <div class="section active" id="sec-resumen"></div>
+    <div class="section" id="sec-mesactual"></div>
+    <div class="section" id="sec-pl"></div>
+    <div class="section" id="sec-plsheet"></div>
+    <div class="section" id="sec-gastos"></div>
+    <div class="section" id="sec-cashflow"></div>
+    <div class="section" id="sec-balance"></div>
+    <div class="section" id="sec-inversiones"></div>
+    <div class="section" id="sec-budget"></div>
+    <div class="section" id="sec-ratios"></div>
+    <div class="section" id="sec-forecast"></div>
+    <div class="section" id="sec-insights"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   CONFIG
+========================================================================= */
+const CONFIG = {
+  incStaUrl: 'https://script.google.com/macros/s/AKfycbxu7KYgkEt6B5d_RAOlko_mYH2zUoWQ0jY-cGA3ZSO2WRwFQEUiz2M6JcHcgK14vVsqLw/exec',
+  portfolioUrl: 'https://script.google.com/macros/s/AKfycbx0cuIlznsO0jfewBSBa3X9RSZg5ptDlT5DTqFcimojKAZXKwxKfYMan2yVeWXR9ZFyMg/exec',
+  palette: {
+    navy:'#1E2761', navy2:'#293575', ice:'#CADCFC', ice2:'#8FA8D9',
+    teal:'#0D9488', red:'#DC2626', amber:'#D97706', green:'#16A34A', text:'#1E293B'
+  },
+  currencySymbols:{ 'Pesos':'$', 'Dollars':'US$', 'Euros':'€' },
+  currencyLabels:{ 'Pesos':'Pesos (ARS)', 'Dollars':'Dólares (USD)', 'Euros':'Euros (EUR)' }
+};
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+// Leveraged ETFs (TQQQ 3x, XS2D 2x, LQQ 2x) trade at Leverage=1 in the Trades Sheet — the "Leverage" field
+// only flags margined/derivative positions like BTC futures, not the embedded leverage of these ETFs.
+// Confirmed with Pato: match these tickers explicitly for concentration/risk calculations.
+const LEVERAGED_TICKERS = ['TQQQ','XS2D','LQQ'];
+function isLeveragedPosition(t){
+  return num(t.Leverage) > 1 || LEVERAGED_TICKERS.includes(String(t.Ticker||'').trim().toUpperCase());
+}
+
+let RAW = { incSta:null, portfolio:null };
+let STATE = { curMonth: {}, charts:{} };
+
+// chartjs-plugin-datalabels is registered globally but OFF by default — only the specific charts that
+// asked for data labels (Mes Actual bars, Cash Flow, Runway, Asset Allocation %) turn it on explicitly
+// via options.plugins.datalabels, so the rest of the charts (lines, existing bars) stay unaffected.
+if(typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined'){
+  Chart.register(ChartDataLabels);
+  Chart.defaults.plugins.datalabels = { display:false };
+}
+
+/* =========================================================================
+   GENERIC HELPERS
+========================================================================= */
+function currentMonthIndex(){
+  // index (0-11) of the most recent month that has any income data across currencies;
+  // falls back to calendar month if sheet not loaded yet.
+  return new Date().getMonth();
+}
+function sheetObjects(sheetName, headerRowIdx){
+  headerRowIdx = headerRowIdx || 0;
+  const raw = (RAW.incSta && RAW.incSta[sheetName]) || [];
+  if(raw.length <= headerRowIdx) return [];
+  const header = raw[headerRowIdx];
+  return raw.slice(headerRowIdx+1)
+    .filter(r => r.some(c => c !== '' && c !== null && c !== undefined))
+    .map(r => { const o={}; header.forEach((h,i)=>o[h]=r[i]); return o; });
+}
+function rowYearOk(row){
+  if(!row.Year) return true;
+  const y = new Date(row.Year).getFullYear();
+  if(isNaN(y)) return true;
+  return y === new Date().getFullYear();
+}
+function num(v){
+  // FX sheet stores some months as Argentine-formatted strings ("1.513,30" / " 1513,30" — period=thousands,
+  // comma=decimal) while other months in the same row are plain numbers. Number("1513,30") is NaN, which
+  // silently became 0 — this was the root cause of Dollar MEP/CCL/Cripto showing 0 in July. Detect a comma
+  // in a string value and convert it to the standard format before parsing.
+  if(typeof v === 'string' && v.indexOf(',')!==-1){
+    const cleaned = v.trim().replace(/\./g,'').replace(',', '.');
+    const n = Number(cleaned);
+    return isNaN(n) ? 0 : n;
+  }
+  const n = Number(v); return isNaN(n) ? 0 : n;
+}
+function sumMonths(row, uptoIdx){
+  uptoIdx = (uptoIdx===undefined) ? 11 : uptoIdx;
+  let s=0; for(let i=0;i<=uptoIdx;i++) s += num(row[MONTHS[i]]);
+  return s;
+}
+function monthSeries(row, uptoIdx){
+  uptoIdx = (uptoIdx===undefined) ? 11 : uptoIdx;
+  const out=[]; for(let i=0;i<=uptoIdx;i++) out.push(num(row[MONTHS[i]]));
+  return out;
+}
+function matchStr(val, needle){
+  return String(val||'').toLowerCase().includes(String(needle).toLowerCase());
+}
+function findRows(rows, matchers){
+  return rows.filter(r => Object.entries(matchers).every(([k,v]) => matchStr(r[k], v)));
+}
+function findRow(rows, matchers){ const r = findRows(rows, matchers); return r[0] || null; }
+function findRowExact(rows, matchers){
+  return rows.find(r => Object.entries(matchers).every(([k,v]) => String(r[k]||'').trim().toLowerCase() === String(v).trim().toLowerCase())) || null;
+}
+// P&L / CASH FLOW / BALANCE SHEET all carry BOTH an "Original Currency" and a "Currency" column.
+// Detail rows are broken out by original source currency but converted to a single display currency (Currency=Dollars).
+// The TRUE native total per currency lives in the row where "Original Currency" = "TOTAL" (a marker, not a currency).
+// Always use these native-total helpers instead of filtering by Currency alone, or original-currency detail rows
+// get summed together with converted-detail rows and subtotals, wildly inflating the result.
+function nativeTotal(rows, cur, category){
+  return findRowExact(rows, {'Original Currency':'TOTAL', Currency:cur, Category:category});
+}
+// The "P&L" sheet's own TOTAL rows were verified against the PPT and do NOT match (stale/broken formulas
+// in that sheet). OVERVIEW's per-currency INCOMES/COSTS rows DO match exactly (confirmed cell-by-cell against
+// the PPT: Jan ARS Income $1.485.302,22, Cost $1.231.822,21, Net $253.480,01 — all exact). Use OVERVIEW as the
+// source of truth for Income/Cost/Net everywhere, never the P&L sheet.
+function overviewIncomeCost(overviewRows, cur, curM){
+  // IMPORTANT — reversed an earlier "exclude Accounts Payable" change. Verified mathematically: summing
+  // every row with Concepts==='COSTS' (Pesos, July) INCLUDING Accounts Payable (-356.233,27) gives
+  // 349.024,72 — which matches BOTH Pato's confirmed-correct figure AND OVERVIEW's own "Total COSTS"
+  // subtotal row (blank-Currency row right after each currency's block) exactly, to the cent. Excluding
+  // AP instead gives 705.257,98 — the wrong, too-high number Pato flagged. So Accounts Payable must stay
+  // IN the cost total; it nets a real cash effect here, it isn't a pure balance-sheet roll-forward.
+  const incRows = overviewRows.filter(r => matchStr(r.Currency,cur) && r.Concepts==='INCOMES');
+  const costRows = overviewRows.filter(r => matchStr(r.Currency,cur) && r.Concepts==='COSTS');
+  return {
+    incRows, costRows,
+    incMonthly: MONTHS.map((m,i)=> i<=curM ? incRows.reduce((s,r)=>s+num(r[m]),0) : null),
+    costMonthly: MONTHS.map((m,i)=> i<=curM ? costRows.reduce((s,r)=>s+num(r[m]),0) : null) // positive in OVERVIEW — subtract, don't add
+  };
+}
+// Pato asked KPI cards / KPI table Net Income to come specifically from INC. STA. SHEET's "Total Net Income"
+// row (Sub-Category1 exact match) rather than the OVERVIEW-derived Income-Cost subtraction. Both sources were
+// verified to agree cell-for-cell (Jan ARS = 253,480.01 either way) — this just switches to the named source.
+function incStaTotalNetIncome(incStaRows, cur, curM){
+  const row = incStaRows.find(r => matchStr(r.Currency,cur) && String(r['Sub-Category1']||'').trim().toLowerCase()==='total net income');
+  return MONTHS.map((m,i)=> i<=curM ? (row?num(row[m]):0) : null);
+}
+// INC. STA. SHEET carries several rows sharing the same "Concepts" label (e.g. two "FREE CASH FLOW" rows) —
+// the real distinguishing field is "Sub-Category1". Always match on that, exact, not "Concepts".
+function incStaRow(incStaRows, cur, subCat1){
+  return incStaRows.find(r => matchStr(r.Currency,cur) && String(r['Sub-Category1']||'').trim().toLowerCase()===subCat1.trim().toLowerCase()) || null;
+}
+// Drill-down helper for Gastos / Mes Actual: INC. STA. SHEET has the same Category/Sub-Category granularity
+// as OVERVIEW plus one extra level, "Sub-Category1" (it also has duplicate rows split by payment method,
+// which is why we always SUM matching rows rather than pick one — verified this reconstructs the OVERVIEW
+// Sub-Category total exactly, e.g. Variable Cost/Food Jul = 29.959 both ways).
+function subCategory1Breakdown(incStaRows, cur, conceptsExact, category, subCategory, monthKeys){
+  const rows = incStaRows.filter(r => matchStr(r.Currency,cur) && r.Concepts===conceptsExact && r.Category===category && r['Sub-Category']===subCategory);
+  const map = {};
+  rows.forEach(r=>{
+    const k = r['Sub-Category1'] || 'Otros';
+    let v = 0; monthKeys.forEach(m=> v += num(r[m]));
+    if(!v) return;
+    map[k] = (map[k]||0) + v;
+  });
+  return map;
+}
+function renderDrillDownPanel(container, title, breakdownMap, cur, totalForPct){
+  container.innerHTML='';
+  const entries = Object.entries(breakdownMap).map(([k,v])=>[k,Math.abs(v)]).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length){ container.innerHTML = '<div class="small-note">Sin desglose de Sub-Category1 disponible para "'+title+'".</div>'; return; }
+  const total = (totalForPct!==undefined && totalForPct) ? Math.abs(totalForPct) : entries.reduce((s,e)=>s+e[1],0);
+  const rows = entries.map(([k,v])=>'<tr><td>'+k+'</td><td class="num">'+fmt(v,cur)+'</td><td class="num">'+fmtPct(total?v/total*100:0)+'</td></tr>').join('');
+  container.innerHTML = '<div class="card" style="margin-top:10px;border-color:var(--teal);">'+
+    '<h4 style="font-size:12.5px;color:var(--navy);margin-bottom:8px;">Detalle Sub-Category1 · '+title+'</h4>'+
+    '<table><thead><tr><th>Sub-Category1</th><th class="num">Total</th><th class="num">% dentro de la categoría</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+// All decimal numbers in the dashboard use the Argentine convention (comma decimal separator, period
+// thousands) via toLocaleString('es-AR', ...) — never raw .toFixed(), which always renders a period.
+function esDecimal(n, decimals){
+  decimals = decimals===undefined?2:decimals;
+  n = Number(n); if(isNaN(n)) n = 0;
+  return n.toLocaleString('es-AR', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+}
+function fmt(n, currency, opts){
+  opts = opts || {};
+  const sym = CONFIG.currencySymbols[currency] || '';
+  const abs = Math.abs(n);
+  // Show decimals whenever the underlying number actually HAS a meaningful fractional part — for every
+  // currency including Pesos (previously Pesos was hard-forced to 0 decimals, hiding real cents/centavos).
+  const hasFraction = Math.abs(abs - Math.round(abs)) > 0.004;
+  const decimals = opts.decimals !== undefined ? opts.decimals : (hasFraction ? 2 : 0);
+  const s = abs.toLocaleString('es-AR', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+  return (n<0 ? '-' : '') + sym + s;
+}
+function fmtPct(n, decimals){
+  decimals = decimals===undefined?1:decimals;
+  return esDecimal(n, decimals) + '%';
+}
+function el(tag, cls, html){
+  const e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(html!==undefined) e.innerHTML = html;
+  return e;
+}
+function destroyChart(id){ if(STATE.charts[id]){ STATE.charts[id].destroy(); delete STATE.charts[id]; } }
+function makeChart(canvasId, type, data, options){
+  if(typeof Chart === 'undefined'){
+    console.warn('Chart.js no está cargado todavía — se omite el gráfico', canvasId);
+    return;
+  }
+  try{
+    destroyChart(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if(!ctx) return;
+    STATE.charts[canvasId] = new Chart(ctx, { type, data, options: Object.assign({
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ font:{size:11}, color:'#1E293B' } } },
+      scales: type==='pie' || type==='doughnut' ? {} : {
+        x:{ grid:{display:false}, ticks:{font:{size:10.5}} },
+        y:{ grid:{color:'#E2E8F0'}, ticks:{font:{size:10.5}} }
+      }
+    }, options||{}) });
+  }catch(chartErr){
+    console.warn('No se pudo renderizar el gráfico '+canvasId, chartErr);
+  }
+}
+
+/* =========================================================================
+   DATA LOADING
+========================================================================= */
+function fetchWithTimeout(url, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), ms);
+  return fetch(url, {redirect:'follow', signal:ctrl.signal}).finally(()=>clearTimeout(t));
+}
+// The Apps Script endpoint (15 sheets, INC. STA. SHEET especially) was independently measured to take
+// 60+ seconds to respond — this is not a dashboard bug, the script itself is just slow (likely re-reading
+// every sheet's full range on every call). Two changes to stop the UI from ever feeling "stuck":
+// 1) Cache the last successful payload in localStorage and render it INSTANTLY on load — the user sees
+//    data immediately instead of staring at a spinner, while a fresh fetch runs quietly in the background.
+// 2) A generous 90s timeout (was 30s, which was aborting a request that would have succeeded at ~60-70s).
+const CACHE_KEY = 'financeDashboardCacheV1';
+function loadCache(){
+  try{ return JSON.parse(localStorage.getItem(CACHE_KEY)||'null'); }catch(e){ return null; }
+}
+function saveCache(){
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({incSta:RAW.incSta, portfolio:RAW.portfolio, savedAt:Date.now()})); }catch(e){ console.warn('No se pudo guardar caché local', e); }
+}
+async function loadAll(){
+  const loadMsg = document.getElementById('loadMsg');
+  const cache = loadCache();
+  const banner = document.getElementById('errorBanner');
+  banner.style.display='none';
+
+  if(cache && cache.incSta && cache.portfolio){
+    // Render immediately from cache so the dashboard is never blank/blocked while the live fetch runs.
+    RAW.incSta = cache.incSta; RAW.portfolio = cache.portfolio;
+    document.getElementById('loadOverlay').style.display='none';
+    const ageMin = Math.round((Date.now()-cache.savedAt)/60000);
+    document.getElementById('lastUpdated').textContent = 'Mostrando datos en caché (hace '+(ageMin<1?'<1':ageMin)+' min) · actualizando…';
+    renderAll();
+  } else {
+    document.getElementById('loadOverlay').style.display='flex';
+    if(loadMsg) loadMsg.textContent = 'Cargando datos en vivo desde Google Sheets… (puede tardar 30-90s)';
+  }
+
+  const TIMEOUT_MS = 90000;
+  const timeoutNotice = setTimeout(()=>{ if(loadMsg && document.getElementById('loadOverlay').style.display!=='none') loadMsg.textContent = 'Sigue cargando… el Apps Script puede tardar hasta 60-90s en responder.'; }, 15000);
+  try{
+    const [r1, r2] = await Promise.all([
+      fetchWithTimeout(CONFIG.incStaUrl, TIMEOUT_MS),
+      fetchWithTimeout(CONFIG.portfolioUrl, TIMEOUT_MS)
+    ]);
+    if(!r1.ok || !r2.ok) throw new Error('HTTP ' + r1.status + ' / ' + r2.status);
+    RAW.incSta = await r1.json();
+    const portfolioResp = await r2.json();
+    RAW.portfolio = portfolioResp.data || portfolioResp;
+    saveCache();
+    document.getElementById('lastUpdated').textContent = 'Actualizado: ' + new Date().toLocaleString('es-AR');
+    renderAll();
+  }catch(err){
+    console.error(err);
+    const isTimeout = err && err.name === 'AbortError';
+    const isCors = err && /failed to fetch/i.test(err.message||'');
+    const msg = isTimeout
+        ? 'La solicitud tardó más de 90s y se canceló. El Apps Script está respondiendo demasiado lento — conviene revisar su tiempo de ejecución en el editor de Apps Script (Ejecuciones) y, si lee las 15 hojas enteras en cada llamada, agregar CacheService o reducir los rangos leídos.'
+        : isCors
+        ? 'El navegador bloqueó la solicitud (posible problema de CORS/acceso). Revisá que ambos Apps Script estén desplegados con acceso "Cualquier usuario", y que estés logueado en la cuenta de Google correcta en este navegador.'
+        : 'Detalle técnico: ' + (err.message||err);
+    if(cache && cache.incSta){
+      // We already rendered from cache — don't re-show the blocking overlay, just note the refresh failed.
+      document.getElementById('lastUpdated').textContent = 'No se pudo actualizar (mostrando caché). ' + msg;
+    } else {
+      banner.style.display='block';
+      banner.innerHTML = '<b>No se pudieron cargar los datos en vivo.</b> ' + msg;
+    }
+  }finally{
+    clearTimeout(timeoutNotice);
+    document.getElementById('loadOverlay').style.display='none';
+  }
+}
+
+function renderAll(){
+  const sections = [renderResumen, renderMesActual, renderPL, renderPLSheet, renderGastos, renderCashFlow,
+    renderBalance, renderInversiones, renderBudget, renderRatios, renderForecast, renderInsights];
+  sections.forEach(fn=>{
+    try{ fn(); }catch(e){ console.error('Error renderizando '+fn.name, e); }
+  });
+}
+
+/* =========================================================================
+   NAVIGATION
+========================================================================= */
+document.querySelectorAll('.navitem').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    document.querySelectorAll('.navitem').forEach(i=>i.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    item.classList.add('active');
+    const sec = item.dataset.section;
+    document.getElementById('sec-'+sec).classList.add('active');
+    document.getElementById('pageTitle').textContent = item.textContent.replace(/^\d+\w*\s*/,'').trim();
+    window.scrollTo(0,0);
+  });
+});
+document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+/* =========================================================================
+   SECTION: 01 · RESUMEN
+========================================================================= */
+function renderResumen(){
+  const c = document.getElementById('sec-resumen'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">01 · Resumen</span><h3>Executive Summary</h3><div class="desc">Resultado consolidado por moneda, año en curso</div>'));
+
+  const overview = sheetObjects('OVERVIEW').filter(rowYearOk);
+  const incSta = sheetObjects('INC. STA. SHEET', 5).filter(rowYearOk);
+  const curM = currentMonthIndex();
+  const currencies = ['Pesos','Dollars','Euros'];
+
+  const kpiGrid = el('div','grid grid-3');
+  currencies.forEach(cur=>{
+    // Net Income here is sourced from INC. STA. SHEET's "Total Net Income" row per Pato's explicit instruction
+    // (verified to agree with the OVERVIEW-derived figure cell-for-cell).
+    const netSeries = incStaTotalNetIncome(incSta, cur, curM);
+    const net = netSeries.slice(0,curM+1).reduce((a,b)=>a+(b||0),0);
+    const card = el('div','card kpi-card');
+    card.innerHTML = '<div class="label">Resultado Neto · '+CONFIG.currencyLabels[cur]+'</div>'+
+      '<div class="value '+(net>=0?'pos':'neg')+'">'+fmt(net,cur)+'</div>'+
+      '<div class="foot">Ene – '+MONTHS_ES[curM]+' '+new Date().getFullYear()+' · INC. STA. SHEET · Total Net Income</div>';
+    kpiGrid.appendChild(card);
+  });
+  c.appendChild(kpiGrid);
+
+  // Portfolio ROI + concentration quick stats
+  const trades = (RAW.portfolio||[]).filter(t => t['Position Status']==='Open');
+  const totalValueUSD = trades.reduce((s,t)=>s+num(t['Value Position\nUSD']||t['Value Position USD']),0);
+  const invested = trades.reduce((s,t)=>s+num(t['Net Invested']),0);
+  const roi = invested ? ((totalValueUSD-invested)/invested*100) : 0;
+  const leveraged = trades.filter(isLeveragedPosition);
+  const levValue = leveraged.reduce((s,t)=>s+num(t['Value Position\nUSD']||t['Value Position USD']),0);
+  const concentration = totalValueUSD ? (levValue/totalValueUSD*100) : 0;
+
+  const g2 = el('div','grid grid-3'); g2.style.marginTop='16px';
+  g2.appendChild(el('div','card kpi-card','<div class="label">ROI Total Cartera</div><div class="value '+(roi>=0?'pos':'neg')+'">'+fmtPct(roi)+'</div><div class="foot">('+fmt(totalValueUSD,'Dollars')+' valor − '+fmt(invested,'Dollars')+' invertido) / invertido</div>'));
+  g2.appendChild(el('div','card kpi-card','<div class="label">Concentración Leveraged</div><div class="value '+(concentration>35?'warn':'pos')+'">'+fmtPct(concentration)+'</div><div class="foot">TQQQ+XS2D+LQQ+futuros / valor total cartera · objetivo ≤35%</div>'));
+  g2.appendChild(el('div','card kpi-card','<div class="label">Posiciones Abiertas</div><div class="value">'+trades.length+'</div><div class="foot">En cartera activa</div>'));
+  c.appendChild(g2);
+
+  // KPI dashboard table
+  const kpis = sheetObjects('KPIs').filter(rowYearOk);
+  const tblCard = el('div','card'); tblCard.style.marginTop='16px';
+  let rowsHtml = '';
+  currencies.forEach(cur=>{
+    const {incMonthly, costMonthly} = overviewIncomeCost(overview, cur, curM);
+    const inc = incMonthly.slice(0,curM+1).reduce((a,b)=>a+b,0);
+    const cost = -costMonthly.slice(0,curM+1).reduce((a,b)=>a+b,0); // display as negative, OVERVIEW stores it positive
+    const netSeries = incStaTotalNetIncome(incSta, cur, curM);
+    const net = netSeries.slice(0,curM+1).reduce((a,b)=>a+(b||0),0);
+    rowsHtml += '<tr><td>'+CONFIG.currencyLabels[cur]+'</td><td class="num">'+fmt(inc,cur)+'</td><td class="num">'+fmt(cost,cur)+'</td><td class="num '+(net>=0?'pos':'neg')+'">'+fmt(net,cur)+'</td></tr>';
+  });
+  tblCard.innerHTML = '<h4 style="color:var(--navy);font-size:13.5px;margin-bottom:10px;">KPI P&amp;L Comparativo por Monedas</h4>'+
+    '<table><thead><tr><th>Indicador</th><th class="num">Ingresos</th><th class="num">Costos</th><th class="num">Resultado Neto</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>';
+  c.appendChild(tblCard);
+
+  // Forex Exchange chart — real FX quotes are every row where Currency !== "Index" (Pesos/Euros/Dollars
+  // blocks: Euro Blue, Dollar Oficial/MEP/CCL/Cripto/Blue, cross T/C rates). "Index" rows are a separate
+  // series (normalized indices + the 3 inflation series), charted below instead.
+  const allFxRows = sheetObjects('FX').filter(rowYearOk);
+  const fxCurrencies = ['Pesos','Euros','Dollars'];
+  if(!STATE.fxFilterCur) STATE.fxFilterCur = 'Pesos';
+  const fxCard = el('div','card chart-card'); fxCard.style.marginTop='16px';
+  const fxFilterHtml = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
+    '<span style="font-size:12.5px;font-weight:600;color:#64748B;">Filtrar por moneda:</span>'+
+    '<select id="fxCurFilter" style="padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;font-family:inherit;color:var(--navy);font-weight:600;">'+
+    '<option value="Todas"'+(STATE.fxFilterCur==='Todas'?' selected':'')+'>Todas</option>'+
+    fxCurrencies.map(cur=>'<option value="'+cur+'"'+(STATE.fxFilterCur===cur?' selected':'')+'>'+CONFIG.currencyLabels[cur]+'</option>').join('')+
+    '</select></div>';
+  fxCard.innerHTML = '<h4>Forex Exchange</h4>'+fxFilterHtml+'<div class="chart-wrap"><canvas id="chartFX"></canvas></div>';
+  c.appendChild(fxCard);
+  function drawFxChart(){
+    const fxRows = allFxRows.filter(r => r.Currency!=='Index' && (STATE.fxFilterCur==='Todas' || r.Currency===STATE.fxFilterCur));
+    if(!fxRows.length) return;
+    const palette10 = [CONFIG.palette.navy,CONFIG.palette.teal,CONFIG.palette.amber,CONFIG.palette.red,CONFIG.palette.green,'#8B5CF6','#F472B6','#0EA5E9','#A16207','#475569'];
+    const datasets = fxRows.map((r,i)=>({
+      label: (r['FX Exchange']||'Serie '+i) + ' ('+CONFIG.currencyLabels[r.Currency]+')',
+      data: monthSeries(r, curM),
+      borderColor: palette10[i%10],
+      backgroundColor:'transparent', tension:.25
+    }));
+    makeChart('chartFX','line',{ labels:MONTHS_ES.slice(0,curM+1), datasets }, {});
+  }
+  drawFxChart();
+  fxCard.querySelector('#fxCurFilter').addEventListener('change', (e)=>{ STATE.fxFilterCur = e.target.value; drawFxChart(); });
+
+  // Inflation chart — Currency="Index" rows specifically named "Arg Inflation" / "USA Inflation" /
+  // "Spain Inflation" (the other Index rows are normalized FX index series, not inflation).
+  const inflationRows = allFxRows.filter(r => r.Currency==='Index' && /inflation/i.test(r['FX Exchange']||''));
+  if(inflationRows.length){
+    const inflCard = el('div','card chart-card'); inflCard.style.marginTop='16px';
+    inflCard.innerHTML = '<h4>Inflación — Argentina / USA / España</h4><div class="chart-wrap"><canvas id="chartInflation"></canvas></div>';
+    c.appendChild(inflCard);
+    const paletteInfl = [CONFIG.palette.navy, CONFIG.palette.teal, CONFIG.palette.amber];
+    const datasets = inflationRows.map((r,i)=>({
+      label: r['FX Exchange'],
+      data: monthSeries(r, curM),
+      borderColor: paletteInfl[i%paletteInfl.length],
+      backgroundColor:'transparent', tension:.25
+    }));
+    makeChart('chartInflation','line',{ labels:MONTHS_ES.slice(0,curM+1), datasets }, {});
+  }
+}
+
+/* =========================================================================
+   SECTION: 01B · MES ACTUAL
+========================================================================= */
+function renderMesActual(){
+  const c = document.getElementById('sec-mesactual'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">01B · Monthly Report</span><h3>Monthly Report</h3><div class="desc">Snapshot de un mes elegido, por moneda</div>'));
+
+  if(STATE.curMonth.mesActual===undefined) STATE.curMonth.mesActual = currentMonthIndex();
+
+  const controls = el('div','grid'); controls.style.cssText='display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;';
+  const selWrap = el('div'); selWrap.style.cssText='display:flex;align-items:center;gap:8px;';
+  const label = el('div','label',''); label.textContent='Mes:'; label.style.cssText='font-size:12.5px;font-weight:600;color:#64748B;';
+  const sel = document.createElement('select');
+  sel.style.cssText='padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;font-family:inherit;color:var(--navy);font-weight:600;';
+  MONTHS_ES.slice(0,currentMonthIndex()+1).forEach((mLabel,i)=>{
+    const opt = document.createElement('option'); opt.value=i; opt.textContent=mLabel;
+    if(i===STATE.curMonth.mesActual) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', ()=>{ STATE.curMonth.mesActual = Number(sel.value); renderMesActualBody(body, activeCur()); });
+  selWrap.appendChild(label); selWrap.appendChild(sel);
+  controls.appendChild(selWrap);
+  c.appendChild(controls);
+
+  const pills = el('div','pills');
+  const body = el('div');
+  const currencies = ['Dollars','Pesos','Euros'];
+  function activeCur(){ return pills.querySelector('.pill.active').dataset.cur; }
+  currencies.forEach((cur,i)=>{
+    const p = el('div','pill'+(i===0?' active':''), CONFIG.currencyLabels[cur]);
+    p.dataset.cur = cur;
+    p.addEventListener('click', ()=>{
+      pills.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+      p.classList.add('active');
+      renderMesActualBody(body, cur);
+    });
+    pills.appendChild(p);
+  });
+  c.appendChild(pills); c.appendChild(body);
+  renderMesActualBody(body, 'Dollars');
+}
+function renderMesActualBody(body, cur){
+  body.innerHTML='';
+  const m = STATE.curMonth.mesActual!==undefined ? STATE.curMonth.mesActual : currentMonthIndex();
+  const monthKey = MONTHS[m];
+  const overview = sheetObjects('OVERVIEW').filter(rowYearOk);
+  const budget = sheetObjects('BUDGET').filter(rowYearOk);
+  const incSta = sheetObjects('INC. STA. SHEET', 5).filter(rowYearOk);
+  const kpis = sheetObjects('KPIs').filter(rowYearOk);
+  const bs = sheetObjects('BALANCE SHEET').filter(rowYearOk);
+
+  const incRows = overview.filter(r => matchStr(r.Currency,cur) && r.Concepts==='INCOMES');
+  // Accounts Payable is included — verified mathematically that excluding it produces the wrong total
+  // (see overviewIncomeCost comment above). Sum of all Concepts==='COSTS' rows for July Pesos, AP included,
+  // equals 349.024,72 exactly — Pato's confirmed-correct figure.
+  const costRows = overview.filter(r => matchStr(r.Currency,cur) && r.Concepts==='COSTS');
+  const incMonth = incRows.reduce((s,r)=>s+num(r[monthKey]),0);
+  const costMonth = costRows.reduce((s,r)=>s+num(r[monthKey]),0);
+  // Same "Total Fix Cost" + "Total Variable Cost" pair as the Budget section — BUDGET mixes several
+  // overlapping "Total" rows for the same currency, so summing all rows for cur double/triple counts.
+  const budgetFixRow = findRowExact(budget, {Currency:cur, Category:'Total Fix Cost'});
+  const budgetVarRow = findRowExact(budget, {Currency:cur, Category:'Total Variable Cost'});
+  const budgetMonth = num(budgetFixRow?budgetFixRow[monthKey]:0) + num(budgetVarRow?budgetVarRow[monthKey]:0);
+
+  const g = el('div','grid grid-4');
+  g.appendChild(el('div','card kpi-card','<div class="label">Ingreso · '+MONTHS_ES[m]+'</div><div class="value">'+fmt(incMonth,cur)+'</div>'));
+  g.appendChild(el('div','card kpi-card','<div class="label">Costo · '+MONTHS_ES[m]+'</div><div class="value neg">'+fmt(-Math.abs(costMonth),cur)+'</div>'));
+  g.appendChild(el('div','card kpi-card','<div class="label">Budget del mes</div><div class="value">'+fmt(Math.abs(budgetMonth),cur)+'</div><div class="foot">'+(budgetMonth? fmtPct(Math.abs(costMonth)/Math.abs(budgetMonth)*100) + ' utilizado' : '')+'</div>'));
+  const net = incMonth - Math.abs(costMonth);
+  g.appendChild(el('div','card kpi-card','<div class="label">Resultado neto</div><div class="value '+(net>=0?'pos':'neg')+'">'+fmt(net,cur)+'</div>'));
+  body.appendChild(g);
+
+  // New KPI widgets requested by Pato: Goal Cost / Measure Goal Cost % / Debt Credit Card Ratio (KPIs, P&L)
+  // and FREE CASH FLOW / TOTAL FCF / FCF + M1 / Total Cash (INC. STA. SHEET, matched on Sub-Category1 exact).
+  const goalCost = findRowExact(kpis, {'Financial Statement':'P&L', Currency:cur, Category:'Goal Cost'});
+  const measGoalPct = findRowExact(kpis, {'Financial Statement':'P&L', Currency:cur, Category:'Measure Goal Cost %'});
+  const debtCC = findRowExact(kpis, {'Financial Statement':'P&L', Currency:cur, Category:'Debt Credit Card Ratio'});
+  const g3 = el('div','grid grid-3'); g3.style.marginTop='16px';
+  g3.appendChild(el('div','card kpi-card','<div class="label">Goal Cost</div><div class="value">'+(goalCost?fmt(num(goalCost[monthKey]),cur):'—')+'</div>'));
+  g3.appendChild(el('div','card kpi-card','<div class="label">Measure Goal Cost %</div><div class="value">'+(measGoalPct?fmtPct(num(measGoalPct[monthKey])*100):'—')+'</div>'));
+  g3.appendChild(el('div','card kpi-card','<div class="label">Debt Credit Card Ratio</div><div class="value">'+(debtCC?fmtPct(num(debtCC[monthKey])*100):'—')+'</div>'));
+  body.appendChild(g3);
+
+  const fcfRow = incStaRow(incSta, cur, 'free cash flow');
+  const totalFcfRow = incStaRow(incSta, cur, 'total fcf');
+  const fcfM1Row = incStaRow(incSta, cur, 'fcf + m1');
+  const totalCashRow = incStaRow(incSta, cur, 'total cash');
+  const g4 = el('div','grid grid-4'); g4.style.marginTop='16px';
+  g4.appendChild(el('div','card kpi-card','<div class="label">Free Cash Flow</div><div class="value">'+(fcfRow?fmt(num(fcfRow[monthKey]),cur):'—')+'</div>'));
+  g4.appendChild(el('div','card kpi-card','<div class="label">Total FCF</div><div class="value">'+(totalFcfRow?fmt(num(totalFcfRow[monthKey]),cur):'—')+'</div>'));
+  g4.appendChild(el('div','card kpi-card','<div class="label">FCF + M1</div><div class="value">'+(fcfM1Row?fmt(num(fcfM1Row[monthKey]),cur):'—')+'</div>'));
+  g4.appendChild(el('div','card kpi-card','<div class="label">Total Cash</div><div class="value">'+(totalCashRow?fmt(num(totalCashRow[monthKey]),cur):'—')+'</div>'));
+  body.appendChild(g4);
+
+  // Bar charts by Category → Sub-Category, sorted largest-to-last, same pattern as the Gastos section.
+  // Data labels show value + %; a table with Total % sits below each chart; double-click a bar drills
+  // into its Sub-Category1 breakdown (INC. STA. SHEET), same reconciled source used in Gastos.
+  function buildBarGroup(rows, titlePrefix, canvasPrefix, conceptsExact){
+    const byCategory = {};
+    rows.forEach(r=>{
+      const catKey = r.Category || 'Otros';
+      const subKey = r['Sub-Category'] || catKey;
+      const v = Math.abs(num(r[monthKey]));
+      if(!v) return;
+      byCategory[catKey] = byCategory[catKey] || {};
+      byCategory[catKey][subKey] = (byCategory[catKey][subKey]||0) + v;
+    });
+    const cats = Object.keys(byCategory);
+    const grid = el('div','grid grid-'+(cats.length>1?'2':'1')); grid.style.marginTop='16px';
+    cats.forEach((cat,ci)=>{
+      const entries = Object.entries(byCategory[cat]).sort((a,b)=>b[1]-a[1]);
+      const total = entries.reduce((s,e)=>s+e[1],0);
+      const card = el('div','card chart-card');
+      const canvasId = canvasPrefix+ci;
+      let rowsHtml = entries.map(([k,v])=>'<tr><td>'+k+'</td><td class="num">'+fmt(v,cur)+'</td><td class="num">'+fmtPct(total?v/total*100:0)+'</td></tr>').join('');
+      card.innerHTML = '<h4>'+titlePrefix+' · '+cat+' — Total '+fmt(total,cur)+'</h4><div class="chart-wrap short"><canvas id="'+canvasId+'"></canvas></div>'+
+        '<table style="margin-top:12px;"><thead><tr><th>Sub-Categoría</th><th class="num">Total</th><th class="num">Total %</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'+
+        '<div class="small-note">Doble click en una barra para ver el detalle de Sub-Category1.</div>';
+      const drillContainer = el('div');
+      card.appendChild(drillContainer);
+      grid.appendChild(card);
+      setTimeout(()=>{
+        makeChart(canvasId,'bar',{
+          labels: entries.map(e=>e[0]),
+          datasets:[{data: entries.map(e=>e[1]), backgroundColor: CONFIG.palette.navy}]
+        },{ indexAxis:'y', plugins:{legend:{display:false}, datalabels:{
+          display:true, anchor:'end', align:'end', color:CONFIG.palette.navy, font:{size:10, weight:'600'},
+          formatter:(v)=> fmt(v,cur)+' ('+fmtPct(total?v/total*100:0)+')'
+        }}});
+        const chartInst = STATE.charts[canvasId];
+        if(chartInst){
+          chartInst.canvas.addEventListener('dblclick', (evt)=>{
+            const points = chartInst.getElementsAtEventForMode(evt, 'nearest', {intersect:true}, true);
+            if(!points.length) return;
+            const idx = points[0].index;
+            const subCatName = entries[idx][0];
+            const breakdown = subCategory1Breakdown(incSta, cur, conceptsExact, cat, subCatName, [monthKey]);
+            renderDrillDownPanel(drillContainer, cat+' → '+subCatName, breakdown, cur, entries[idx][1]);
+          });
+        }
+      },0);
+    });
+    if(!cats.length) grid.appendChild(el('div','card','Sin datos para '+MONTHS_ES[m]+'.'));
+    body.appendChild(grid);
+  }
+  buildBarGroup(incRows, 'Ingresos', 'chartMesIncBar', 'INCOMES');
+  buildBarGroup(costRows, 'Costos', 'chartMesCostBar', 'COSTS');
+}
+
+/* =========================================================================
+   SECTION: 02 · P&L
+========================================================================= */
+function renderPL(){
+  const c = document.getElementById('sec-pl'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">02 · Income Statement</span><h3>Income Statement</h3><div class="desc">Ingresos, costos y resultado neto por moneda</div>'));
+
+  const pills = el('div','pills'); const body = el('div');
+  ['Dollars','Pesos','Euros'].forEach((cur,i)=>{
+    const p = el('div','pill'+(i===0?' active':''), CONFIG.currencyLabels[cur]); p.dataset.cur=cur;
+    p.addEventListener('click',()=>{ pills.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); renderPLBody(body,cur); });
+    pills.appendChild(p);
+  });
+  c.appendChild(pills); c.appendChild(body);
+  renderPLBody(body,'Dollars');
+}
+function renderPLBody(body, cur){
+  body.innerHTML='';
+  const curM = currentMonthIndex();
+  const overview = sheetObjects('OVERVIEW').filter(rowYearOk);
+  const {incMonthly, costMonthly} = overviewIncomeCost(overview, cur, curM);
+
+  const incByMonth = incMonthly;
+  // Cost bars shown as POSITIVE (comparable side-by-side with income bars) — Pato asked for this. The
+  // net result line keeps its real sign (can go negative), computed from the true signed cost, not the
+  // display value.
+  const costByMonthDisplay = costMonthly.map(v => v===null ? null : Math.abs(v));
+  const netByMonth = MONTHS.map((m,i)=> i<=curM ? (incByMonth[i]-costByMonthDisplay[i]) : null);
+
+  const chartCard = el('div','card chart-card');
+  chartCard.innerHTML = '<h4>P&amp;L Mensual · '+CONFIG.currencyLabels[cur]+'</h4><div class="chart-wrap"><canvas id="chartPL"></canvas></div>';
+  body.appendChild(chartCard);
+  makeChart('chartPL','bar',{
+    labels: MONTHS_ES.slice(0,curM+1),
+    datasets:[
+      {label:'Ingresos', data:incByMonth.slice(0,curM+1), backgroundColor:CONFIG.palette.teal},
+      {label:'Costos', data:costByMonthDisplay.slice(0,curM+1), backgroundColor:CONFIG.palette.red},
+      {label:'Resultado Neto', data:netByMonth.slice(0,curM+1), type:'line', borderColor:CONFIG.palette.navy, backgroundColor:'transparent'}
+    ]
+  });
+
+  const totalInc = incByMonth.slice(0,curM+1).reduce((a,b)=>a+b,0);
+  const totalCostDisplay = costByMonthDisplay.slice(0,curM+1).reduce((a,b)=>a+b,0);
+  const totalNet = totalInc-totalCostDisplay;
+  const margin = totalInc? (totalNet/totalInc*100) : 0;
+
+  const tblCard = el('div','card'); tblCard.style.marginTop='16px';
+  tblCard.innerHTML = '<table><tbody>'+
+    '<tr><td>Ingresos totales</td><td class="num pos">'+fmt(totalInc,cur)+'</td></tr>'+
+    '<tr><td>Costos totales</td><td class="num neg">'+fmt(totalCostDisplay,cur)+'</td></tr>'+
+    '<tr class="total"><td>Resultado neto</td><td class="num '+(totalNet>=0?'pos':'neg')+'">'+fmt(totalNet,cur)+'</td></tr>'+
+    '<tr><td>Margen neto</td><td class="num">'+fmtPct(margin)+'</td></tr>'+
+    '</tbody></table>';
+  body.appendChild(tblCard);
+
+  // Monthly breakdown table, requested in addition to the YTD totals above. Costs shown positive here too.
+  const monthlyCard = el('div','card'); monthlyCard.style.marginTop='16px';
+  let monthlyRows = '';
+  for(let i=0;i<=curM;i++){
+    const inc = incByMonth[i]||0, costDisp = costByMonthDisplay[i]||0, net = inc-costDisp;
+    monthlyRows += '<tr><td>'+MONTHS_ES[i]+'</td><td class="num pos">'+fmt(inc,cur)+'</td><td class="num neg">'+fmt(costDisp,cur)+'</td><td class="num '+(net>=0?'pos':'neg')+'">'+fmt(net,cur)+'</td></tr>';
+  }
+  monthlyCard.innerHTML = '<h4 style="color:var(--navy);font-size:13.5px;margin-bottom:10px;">Detalle Mensual · '+CONFIG.currencyLabels[cur]+'</h4>'+
+    '<table><thead><tr><th>Mes</th><th class="num">Ingresos</th><th class="num">Costos</th><th class="num">Neto</th></tr></thead><tbody>'+monthlyRows+'</tbody></table>';
+  body.appendChild(monthlyCard);
+  body.appendChild(el('div','small-note','Fuente: OVERVIEW (verificado exacto contra el reporte PPT). La hoja "P&L" propia tiene sus propios totales (Original Currency=TOTAL) pero no coinciden — ej. Costos Julio Pesos ahí da $9.144.786,65 vs el valor real verificado $349.024,72 — revisar sus fórmulas si querés usarla como fuente directa.'));
+}
+
+/* =========================================================================
+   SECTION: 02B · P&L (hoja "P&L" propia, no OVERVIEW)
+   Misma estructura visual que Income Statement, pero consolidado mes a mes tomando directamente los
+   totales nativos de la hoja "P&L" (Original Currency=TOTAL). Nota: estos totales NO coinciden con
+   OVERVIEW/el reporte PPT verificado (ver nota en Income Statement) — esta sección muestra la hoja
+   "P&L" tal cual está, por pedido explícito.
+========================================================================= */
+function renderPLSheet(){
+  const c = document.getElementById('sec-plsheet'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">02B · P&amp;L</span><h3>P&amp;L (hoja "P&amp;L")</h3><div class="desc">Consolidado mes a mes por moneda, tomado directamente de la hoja "P&amp;L" del Google Sheet</div>'));
+
+  const pills = el('div','pills'); const body = el('div');
+  ['Dollars','Pesos','Euros'].forEach((cur,i)=>{
+    const p = el('div','pill'+(i===0?' active':''), CONFIG.currencyLabels[cur]); p.dataset.cur=cur;
+    p.addEventListener('click',()=>{ pills.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); renderPLSheetBody(body,cur); });
+    pills.appendChild(p);
+  });
+  c.appendChild(pills); c.appendChild(body);
+  renderPLSheetBody(body,'Dollars');
+}
+function renderPLSheetBody(body, cur){
+  body.innerHTML='';
+  const curM = currentMonthIndex();
+  const pl = sheetObjects('P&L').filter(rowYearOk);
+  const incRow = nativeTotal(pl, cur, 'Total Income');
+  const costRow = nativeTotal(pl, cur, 'Total Costs'); // stored negative natively in this sheet
+  const netRow = nativeTotal(pl, cur, 'Net Income');
+
+  const incByMonth = MONTHS.map((m,i)=> i<=curM ? (incRow?num(incRow[m]):0) : null);
+  const costByMonthDisplay = MONTHS.map((m,i)=> i<=curM ? Math.abs(costRow?num(costRow[m]):0) : null);
+  const netByMonth = MONTHS.map((m,i)=> i<=curM ? (netRow?num(netRow[m]):(incByMonth[i]-costByMonthDisplay[i])) : null);
+
+  const chartCard = el('div','card chart-card');
+  chartCard.innerHTML = '<h4>P&amp;L Mensual (hoja P&amp;L) · '+CONFIG.currencyLabels[cur]+'</h4><div class="chart-wrap"><canvas id="chartPLSheet"></canvas></div>';
+  body.appendChild(chartCard);
+  makeChart('chartPLSheet','bar',{
+    labels: MONTHS_ES.slice(0,curM+1),
+    datasets:[
+      {label:'Ingresos', data:incByMonth.slice(0,curM+1), backgroundColor:CONFIG.palette.teal},
+      {label:'Costos', data:costByMonthDisplay.slice(0,curM+1), backgroundColor:CONFIG.palette.red},
+      {label:'Resultado Neto', data:netByMonth.slice(0,curM+1), type:'line', borderColor:CONFIG.palette.navy, backgroundColor:'transparent'}
+    ]
+  });
+
+  const totalInc = incByMonth.slice(0,curM+1).reduce((a,b)=>a+(b||0),0);
+  const totalCostDisplay = costByMonthDisplay.slice(0,curM+1).reduce((a,b)=>a+(b||0),0);
+  const totalNet = netByMonth.slice(0,curM+1).reduce((a,b)=>a+(b||0),0);
+  const margin = totalInc? (totalNet/totalInc*100) : 0;
+
+  const tblCard = el('div','card'); tblCard.style.marginTop='16px';
+  tblCard.innerHTML = '<table><tbody>'+
+    '<tr><td>Ingresos totales</td><td class="num pos">'+fmt(totalInc,cur)+'</td></tr>'+
+    '<tr><td>Costos totales</td><td class="num neg">'+fmt(totalCostDisplay,cur)+'</td></tr>'+
+    '<tr class="total"><td>Resultado neto</td><td class="num '+(totalNet>=0?'pos':'neg')+'">'+fmt(totalNet,cur)+'</td></tr>'+
+    '<tr><td>Margen neto</td><td class="num">'+fmtPct(margin)+'</td></tr>'+
+    '</tbody></table>';
+  body.appendChild(tblCard);
+
+  const monthlyCard = el('div','card'); monthlyCard.style.marginTop='16px';
+  let monthlyRows = '';
+  for(let i=0;i<=curM;i++){
+    const inc = incByMonth[i]||0, costDisp = costByMonthDisplay[i]||0, net = netByMonth[i]||0;
+    monthlyRows += '<tr><td>'+MONTHS_ES[i]+'</td><td class="num pos">'+fmt(inc,cur)+'</td><td class="num neg">'+fmt(costDisp,cur)+'</td><td class="num '+(net>=0?'pos':'neg')+'">'+fmt(net,cur)+'</td></tr>';
+  }
+  monthlyCard.innerHTML = '<h4 style="color:var(--navy);font-size:13.5px;margin-bottom:10px;">Detalle Mensual · '+CONFIG.currencyLabels[cur]+'</h4>'+
+    '<table><thead><tr><th>Mes</th><th class="num">Ingresos</th><th class="num">Costos</th><th class="num">Neto</th></tr></thead><tbody>'+monthlyRows+'</tbody></table>';
+  body.appendChild(monthlyCard);
+  body.appendChild(el('div','small-note','Fuente: hoja "P&L" del Google Sheet (Original Currency=TOTAL), sin cruzar con OVERVIEW. Estos totales pueden no coincidir con Income Statement — ver nota ahí.'));
+}
+
+/* =========================================================================
+   SECTION: 03 · GASTOS
+========================================================================= */
+function renderGastos(){
+  const c = document.getElementById('sec-gastos'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">03 · Costs</span><h3>Costs</h3><div class="desc">Por sub-categoría y moneda, año en curso</div>'));
+
+  const pills = el('div','pills'); const body = el('div');
+  ['Pesos','Dollars','Euros'].forEach((cur,i)=>{
+    const p = el('div','pill'+(i===0?' active':''), CONFIG.currencyLabels[cur]); p.dataset.cur=cur;
+    p.addEventListener('click',()=>{ pills.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); renderGastosBody(body,cur); });
+    pills.appendChild(p);
+  });
+  c.appendChild(pills); c.appendChild(body);
+  renderGastosBody(body,'Pesos');
+}
+function renderGastosBody(body, cur){
+  body.innerHTML='';
+  const curM = currentMonthIndex();
+  const overview = sheetObjects('OVERVIEW').filter(rowYearOk);
+  const incSta = sheetObjects('INC. STA. SHEET', 5).filter(rowYearOk);
+  // Accounts Payable is included in the total — verified mathematically (see overviewIncomeCost comment)
+  // that excluding it produces a wrong, inflated total. It appears as its own category/line below.
+  const costRows = overview.filter(r => matchStr(r.Currency,cur) && r.Concepts==='COSTS');
+
+  // group by top-level Category (e.g. Fixed / Variable) then Sub-Category
+  const byCategory = {};
+  costRows.forEach(r=>{
+    const catKey = r.Category || 'Otros';
+    const subKey = r['Sub-Category'] || catKey;
+    const total = Math.abs(sumMonths(r, curM));
+    if(!total) return;
+    byCategory[catKey] = byCategory[catKey] || {};
+    byCategory[catKey][subKey] = (byCategory[catKey][subKey]||0) + total;
+  });
+
+  const cats = Object.keys(byCategory);
+  const grid = el('div','grid grid-'+(cats.length>1?'2':'1'));
+  cats.forEach((cat,ci)=>{
+    const subMap = byCategory[cat];
+    const entries = Object.entries(subMap).sort((a,b)=>b[1]-a[1]);
+    const total = entries.reduce((s,e)=>s+e[1],0);
+    const card = el('div','card chart-card');
+    const canvasId = 'chartGasto'+ci;
+    let rowsHtml = entries.map(([k,v])=>'<tr><td>'+k+'</td><td class="num">'+fmt(v,cur)+'</td><td class="num">'+fmtPct(v/total*100)+'</td></tr>').join('');
+    card.innerHTML = '<h4>'+cat+' — '+CONFIG.currencyLabels[cur]+' · Total '+fmt(total,cur)+'</h4>'+
+      '<div class="chart-wrap short"><canvas id="'+canvasId+'"></canvas></div>'+
+      '<table style="margin-top:12px;"><thead><tr><th>Sub-Categoría</th><th class="num">Total</th><th class="num">%</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'+
+      '<div class="small-note">Click en una barra para ver el detalle de Sub-Category1 (ej. "Food").</div>';
+    const drillContainer = el('div');
+    card.appendChild(drillContainer);
+    grid.appendChild(card);
+    setTimeout(()=>{
+      makeChart(canvasId,'bar',{
+        labels:entries.map(e=>e[0]),
+        datasets:[{data:entries.map(e=>e[1]), backgroundColor:CONFIG.palette.navy}]
+      },{indexAxis:'y', plugins:{legend:{display:false}, datalabels:{
+        display:true, anchor:'end', align:'end', color:CONFIG.palette.navy, font:{size:10, weight:'600'},
+        formatter:(v)=> fmt(v,cur)+' ('+fmtPct(total?v/total*100:0)+')'
+      }}, onClick:(evt,elements)=>{
+        if(!elements.length) return;
+        const idx = elements[0].index;
+        const subCatName = entries[idx][0];
+        const breakdown = subCategory1Breakdown(incSta, cur, 'COSTS', cat, subCatName, MONTHS.slice(0,curM+1));
+        renderDrillDownPanel(drillContainer, cat+' → '+subCatName, breakdown, cur, entries[idx][1]);
+      }});
+    },0);
+  });
+  if(!cats.length){ grid.appendChild(el('div','card','Sin datos de gastos para esta moneda en el periodo actual.')); }
+  body.appendChild(grid);
+
+  // Combined total by Sub-Category (Fix + Variable together, not split by top-level Category).
+  const bySubTotal = {};
+  cats.forEach(cat=>{
+    Object.entries(byCategory[cat]).forEach(([sub,v])=>{ bySubTotal[sub] = (bySubTotal[sub]||0) + v; });
+  });
+  const subEntries = Object.entries(bySubTotal).sort((a,b)=>b[1]-a[1]);
+  const grandTotal = subEntries.reduce((s,e)=>s+e[1],0);
+  const totalCard = el('div','card'); totalCard.style.marginTop='16px';
+  const totalRowsHtml = subEntries.map(([k,v])=>'<tr><td>'+k+'</td><td class="num">'+fmt(v,cur)+'</td><td class="num">'+fmtPct(grandTotal?v/grandTotal*100:0)+'</td></tr>').join('');
+  totalCard.innerHTML = '<h4 style="color:var(--navy);font-size:13.5px;margin-bottom:10px;">Total de Costos por Sub-Categoría (Fijo + Variable) — '+CONFIG.currencyLabels[cur]+'</h4>'+
+    '<table><thead><tr><th>Sub-Categoría</th><th class="num">Total</th><th class="num">%</th></tr></thead><tbody>'+totalRowsHtml+
+    '</tbody><tfoot><tr class="total"><td>Total</td><td class="num">'+fmt(grandTotal,cur)+'</td><td class="num">100,0%</td></tr></tfoot></table>';
+  body.appendChild(totalCard);
+}
+
+/* =========================================================================
+   SECTION: 04 · CASH FLOW
+========================================================================= */
+function renderCashFlow(){
+  const c = document.getElementById('sec-cashflow'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">04 · Cash Flow</span><h3>Estado de Flujo de Efectivo</h3><div class="desc">Operaciones vs. Inversión, y Free Cash Flow / Runway</div>'));
+
+  const curM = currentMonthIndex();
+  const cf = sheetObjects('CASH FLOW').filter(rowYearOk);
+  const currencies = ['Pesos','Dollars','Euros'];
+
+  // CASH FLOW carries the same Original-Currency/Currency split as P&L — use the native "TOTAL" rows,
+  // never sum the per-original-currency detail rows (those are all converted to Dollars and would double count).
+  const tblCard = el('div','card');
+  let rowsHtml = currencies.map(cur=>{
+    const opsRow = nativeTotal(cf, cur, 'Total Cash from Operations');
+    const invRow = nativeTotal(cf, cur, 'Total Cash from Investing');
+    const ops = opsRow ? sumMonths(opsRow, curM) : 0;
+    const inv = invRow ? sumMonths(invRow, curM) : 0;
+    return '<tr><td>'+CONFIG.currencyLabels[cur]+'</td><td class="num '+(ops>=0?'pos':'neg')+'">'+fmt(ops,cur)+'</td><td class="num '+(inv>=0?'pos':'neg')+'">'+fmt(inv,cur)+'</td><td class="num '+((ops+inv)>=0?'pos':'neg')+'">'+fmt(ops+inv,cur)+'</td></tr>';
+  }).join('');
+  tblCard.innerHTML = '<table><thead><tr><th>Moneda</th><th class="num">CF Operaciones</th><th class="num">CF Inversión</th><th class="num">Total</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>';
+  c.appendChild(tblCard);
+
+  const opsRowUSD = nativeTotal(cf, 'Dollars', 'Total Cash from Operations');
+  const invRowUSD = nativeTotal(cf, 'Dollars', 'Total Cash from Investing');
+  // Free Cash Flow — CASH FLOW sheet's own "Total Free Cash Flow" native row (matches the PPT's FCF disponible figure).
+  const fcfRow = nativeTotal(cf, 'Dollars', 'Total Free Cash Flow');
+  const opsSeries = MONTHS.slice(0,curM+1).map(m=> opsRowUSD?num(opsRowUSD[m]):0);
+  const invSeries = MONTHS.slice(0,curM+1).map(m=> invRowUSD?num(invRowUSD[m]):0);
+  const fcfSeries = MONTHS.slice(0,curM+1).map(m=> fcfRow?num(fcfRow[m]):0);
+  const chartCard = el('div','card chart-card'); chartCard.style.marginTop='16px';
+  chartCard.innerHTML = '<h4>Detalle mensual · USD</h4><div class="chart-wrap"><canvas id="chartCF"></canvas></div>';
+  c.appendChild(chartCard);
+  makeChart('chartCF','bar',{ labels:MONTHS_ES.slice(0,curM+1), datasets:[
+    {label:'Operaciones', data:opsSeries, backgroundColor:CONFIG.palette.navy, datalabels:{display:true, anchor:'end', align:'end', color:CONFIG.palette.navy, font:{size:9.5,weight:'600'}, formatter:v=>esDecimal(v,1)}},
+    {label:'Inversión', data:invSeries, backgroundColor:CONFIG.palette.teal, datalabels:{display:true, anchor:'end', align:'end', color:CONFIG.palette.teal, font:{size:9.5,weight:'600'}, formatter:v=>esDecimal(v,1)}},
+    {label:'Total Free Cash Flow', data:fcfSeries, type:'line', borderColor:CONFIG.palette.amber, backgroundColor:'transparent', tension:.2, datalabels:{display:true, anchor:'end', align:'top', color:CONFIG.palette.amber, font:{size:9.5,weight:'700'}, formatter:v=>esDecimal(v,1)}}
+  ]},{ plugins:{ datalabels:{display:false} } });
+  const efRow = findRow(sheetObjects('FORECAST',1).filter(rowYearOk), {Currency:'Dollars', Name:'emergency fund'});
+  const g = el('div','grid grid-3'); g.style.marginTop='16px';
+  g.appendChild(el('div','card kpi-card','<div class="label">FCF disponible (mes actual)</div><div class="value">'+(fcfRow? fmt(num(fcfRow[MONTHS[curM]]),'Dollars') : '—')+'</div>'));
+  g.appendChild(el('div','card kpi-card','<div class="label">Emergency Fund</div><div class="value">'+(efRow? fmt(num(efRow[MONTHS[curM]]),'Dollars') : '—')+'</div>'));
+  c.appendChild(g);
+}
+
+/* =========================================================================
+   SECTION: 05 · BALANCE
+========================================================================= */
+function renderBalance(){
+  const c = document.getElementById('sec-balance'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">05 · Balance Sheet</span><h3>Balance Sheet</h3><div class="desc">Evolución de patrimonio, activos y pasivos</div>'));
+
+  const curM = currentMonthIndex();
+  const bs = sheetObjects('BALANCE SHEET').filter(rowYearOk);
+  const currencies = ['Dollars','Euros','Pesos'];
+
+  // BALANCE SHEET has the same Original-Currency/Currency split as P&L and CASH FLOW. Here the specific
+  // breakdown (Current Assets / Total Assets / etc.) lives in "Sub-Category", not "Category" — confirmed
+  // exact structure. Net Worth is the one exception: it's stored with Original Currency = Currency = cur
+  // (no "TOTAL" marker), one row per currency.
+  const bsSub = (cur, category, subCategory) => findRowExact(bs, {'Original Currency':'TOTAL', Currency:cur, Category:category, 'Sub-Category':subCategory});
+  const netWorthRow = (cur) => findRowExact(bs, {'Original Currency':cur, Currency:cur, Category:'Net Worth', 'Sub-Category':'Net Worth'});
+
+  // Explicit KPI cards for the current month's Net Worth per currency — the chart alone doesn't show the number as text.
+  const nwCards = el('div','grid grid-3');
+  currencies.forEach(cur=>{
+    const row = netWorthRow(cur);
+    const val = row ? num(row[MONTHS[curM]]) : null;
+    nwCards.appendChild(el('div','card kpi-card','<div class="label">Patrimonio Neto · '+CONFIG.currencyLabels[cur]+' ('+MONTHS_ES[curM]+')</div><div class="value">'+(val===null?'—':fmt(val,cur))+'</div>'));
+  });
+  c.appendChild(nwCards);
+
+  const chartCard = el('div','card chart-card'); chartCard.style.marginTop='16px';
+  chartCard.innerHTML = '<h4>Evolución de Patrimonio Neto</h4><div class="chart-wrap"><canvas id="chartNW"></canvas></div>';
+  c.appendChild(chartCard);
+  const nwDatasets = currencies.map((cur,i)=>{
+    const row = netWorthRow(cur);
+    const series = MONTHS.slice(0,curM+1).map(m=> row?num(row[m]):0);
+    return { label:CONFIG.currencyLabels[cur], data:series, borderColor:[CONFIG.palette.navy,CONFIG.palette.teal,CONFIG.palette.amber][i], backgroundColor:'transparent', tension:.25, yAxisID: i===2?'y1':'y' };
+  });
+  makeChart('chartNW','line',{ labels:MONTHS_ES.slice(0,curM+1), datasets:nwDatasets },{
+    scales:{ y:{position:'left', grid:{color:'#E2E8F0'}}, y1:{position:'right', grid:{display:false}} }
+  });
+
+  // Total Assets / Total Liabilities by currency, right below the Net Worth evolution chart.
+  const talCard = el('div','card'); talCard.style.marginTop='16px';
+  let talRows = currencies.map(cur=>{
+    const totAssets = bsSub(cur,'Assets','Total Assets');
+    const totLiab = bsSub(cur,'Liabilities','Total Liabilities');
+    const av = totAssets ? num(totAssets[MONTHS[curM]]) : 0;
+    const lv = totLiab ? num(totLiab[MONTHS[curM]]) : 0;
+    return '<tr><td>'+CONFIG.currencyLabels[cur]+'</td><td class="num">'+fmt(av,cur)+'</td><td class="num">'+fmt(lv,cur)+'</td></tr>';
+  }).join('');
+  talCard.innerHTML = '<h4 style="color:var(--navy);font-size:13.5px;margin-bottom:10px;">Total Assets / Total Liabilities por Moneda ('+MONTHS_ES[curM]+')</h4>'+
+    '<table><thead><tr><th>Moneda</th><th class="num">Total Assets</th><th class="num">Total Liabilities</th></tr></thead><tbody>'+talRows+'</tbody></table>';
+  c.appendChild(talCard);
+
+  // Assets & Liabilities distribution by ORIGINAL currency (Pesos/Euros/Dollars/ALL) — one chart each,
+  // filterable, instead of the previous 3 per-currency doughnuts (which all showed the same Current/
+  // Non-Current proportion, since they used the converted TOTAL rows, not the real per-origin detail rows).
+  // Detail rows (Original Currency != TOTAL) are always expressed in USD (Currency=Dollars), so this shows
+  // where each currency's assets/liabilities really sit, in USD.
+  function origCurBreakdown(category, subCurrent, subNonCurrent){
+    const rows = bs.filter(r=> r.Category===category && r['Original Currency']!=='TOTAL' && (r['Sub-Category']===subCurrent || r['Sub-Category']===subNonCurrent));
+    const map = {};
+    rows.forEach(r=>{
+      const oc = r['Original Currency']||'Otros';
+      map[oc] = map[oc] || {current:0, nonCurrent:0};
+      const v = num(r[MONTHS[curM]]);
+      if(r['Sub-Category']===subCurrent) map[oc].current += v; else map[oc].nonCurrent += v;
+    });
+    return map;
+  }
+  function renderOrigCurDonut(opts){
+    // opts: {title, category, subCurrent, subNonCurrent, totalCategory, totalSubCat, canvasId, stateKey, container}
+    if(!STATE[opts.stateKey]) STATE[opts.stateKey] = { origCur:'Todas', dispCur:'Dollars' };
+    const st = STATE[opts.stateKey];
+    const map = origCurBreakdown(opts.category, opts.subCurrent, opts.subNonCurrent);
+    const origOptions = ['Todas','Pesos','Euros','Dollars'];
+    const card = el('div','card chart-card');
+    card.innerHTML = '<h4>'+opts.title+'</h4>'+
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;">'+
+      '<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;color:#64748B;font-weight:600;">Original Currency:</span>'+
+      '<select class="origCurSel" style="padding:5px 8px;border-radius:8px;border:1px solid #CBD5E1;font-size:12.5px;font-family:inherit;color:var(--navy);font-weight:600;">'+
+      origOptions.map(o=>'<option value="'+o+'"'+(st.origCur===o?' selected':'')+'>'+o+'</option>').join('')+'</select></div>'+
+      '<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;color:#64748B;font-weight:600;">Mostrar total en:</span>'+
+      '<select class="dispCurSel" style="padding:5px 8px;border-radius:8px;border:1px solid #CBD5E1;font-size:12.5px;font-family:inherit;color:var(--navy);font-weight:600;">'+
+      ['Dollars','Pesos','Euros'].map(o=>'<option value="'+o+'"'+(st.dispCur===o?' selected':'')+'>'+CONFIG.currencyLabels[o]+'</option>').join('')+'</select></div>'+
+      '</div>'+
+      '<div class="chart-wrap"><canvas id="'+opts.canvasId+'"></canvas></div>'+
+      '<div class="small-note" style="font-size:13px;color:var(--navy);font-weight:700;margin-top:8px;" id="'+opts.canvasId+'Total"></div>';
+    opts.container.appendChild(card);
+    function draw(){
+      let current, nonCurrent;
+      if(st.origCur==='Todas'){
+        current = Object.values(map).reduce((s,v)=>s+v.current,0);
+        nonCurrent = Object.values(map).reduce((s,v)=>s+v.nonCurrent,0);
+      } else {
+        current = map[st.origCur] ? map[st.origCur].current : 0;
+        nonCurrent = map[st.origCur] ? map[st.origCur].nonCurrent : 0;
+      }
+      const totRow = bsSub(st.dispCur, opts.totalCategory, opts.totalSubCat);
+      const totVal = totRow ? num(totRow[MONTHS[curM]]) : null;
+      card.querySelector('#'+opts.canvasId+'Total').textContent = 'Total '+opts.totalSubCat+' ('+CONFIG.currencyLabels[st.dispCur]+'): '+(totVal===null?'—':fmt(totVal,st.dispCur));
+      const sum = current+nonCurrent;
+      makeChart(opts.canvasId,'doughnut',{ labels:['Corrientes (USD)','No Corrientes (USD)'], datasets:[{data:[current,nonCurrent], backgroundColor:[CONFIG.palette.teal,CONFIG.palette.navy],
+        datalabels:{ display:true, color:'#fff', font:{size:12,weight:'700'}, formatter:(v)=> sum? fmtPct(v/sum*100) : '' }
+      }] },{ plugins:{ datalabels:{display:true}, tooltip:{ callbacks:{ label:(ctx)=> ctx.label+': '+fmt(ctx.raw,'Dollars') } } } });
+    }
+    draw();
+    card.querySelector('.origCurSel').addEventListener('change',(e)=>{ st.origCur = e.target.value; draw(); });
+    card.querySelector('.dispCurSel').addEventListener('change',(e)=>{ st.dispCur = e.target.value; draw(); });
+  }
+  const g = el('div','grid grid-2'); g.style.marginTop='16px';
+  c.appendChild(g);
+  renderOrigCurDonut({ title:'Activos — Corrientes vs No Corrientes por Original Currency', category:'Assets', subCurrent:'Current Assets', subNonCurrent:'Non-Current Assets', totalCategory:'Assets', totalSubCat:'Total Assets', canvasId:'chartAssetsOrig', stateKey:'bsAssetsFilter', container:g });
+  renderOrigCurDonut({ title:'Pasivos — Corrientes vs No Corrientes por Original Currency', category:'Liabilities', subCurrent:'Current liabilities', subNonCurrent:'Non-Current liabilities', totalCategory:'Liabilities', totalSubCat:'Total Liabilities', canvasId:'chartLiabOrig', stateKey:'bsLiabFilter', container:g });
+
+  // "Asset Class" / "Sub-Category2" breakdown, in USD — these two fields live on BALANCE SHEET, not on
+  // BUDGET (BUDGET's columns are only Year/Currency/Category/Sub-Category/Name — no Asset Class or
+  // Sub-Category2 there). Placing the requested breakdown here, where the fields actually exist.
+  // Exclude subtotal/rollup rows from both breakdowns (confirmed exact values live in the sheet) — otherwise
+  // "Current Assets"/"Non-Current Assets"/"Total Assets" (Asset Class) and "Total current assets (U$D)"/
+  // "Total Non-Current Assets (U$D)"/"Total Assets" (Sub-Category2) double-count alongside their own detail rows.
+  const ASSET_CLASS_EXCLUDE = ['current assets','non-current assets','total assets'];
+  const SUBCAT2_EXCLUDE = ['total current assets (u$d)','total non-current assets (u$d)','total assets'];
+  const assetRows = bs.filter(r=>r.Currency==='Dollars' && r.Category==='Assets' && r['Asset Class']);
+  const byAssetClass = {};
+  assetRows.forEach(r=>{
+    const cls = r['Asset Class'];
+    if(ASSET_CLASS_EXCLUDE.includes(String(cls||'').trim().toLowerCase())) return;
+    const v=num(r[MONTHS[curM]]); if(v) byAssetClass[cls]=(byAssetClass[cls]||0)+v;
+  });
+  const bySubCat2 = {};
+  assetRows.forEach(r=>{
+    const k = r['Sub-Category2']||'Otros';
+    if(SUBCAT2_EXCLUDE.includes(String(k||'').trim().toLowerCase())) return;
+    const v=num(r[MONTHS[curM]]); if(v) bySubCat2[k]=(bySubCat2[k]||0)+v;
+  });
+  const g3 = el('div','grid grid-2'); g3.style.marginTop='16px';
+  const acCard = el('div','card chart-card');
+  acCard.innerHTML = '<h4>Activos por Asset Class (USD, '+MONTHS_ES[curM]+')</h4><div class="chart-wrap"><canvas id="chartBsAssetClass"></canvas></div>';
+  g3.appendChild(acCard);
+  const sc2Card = el('div','card chart-card');
+  sc2Card.innerHTML = '<h4>Activos por Sub-Category2 (USD, '+MONTHS_ES[curM]+')</h4><div class="chart-wrap"><canvas id="chartBsSubCat2"></canvas></div>';
+  g3.appendChild(sc2Card);
+  c.appendChild(g3);
+  const paletteBS = [CONFIG.palette.navy,CONFIG.palette.teal,CONFIG.palette.amber,CONFIG.palette.ice2,CONFIG.palette.green,CONFIG.palette.red,'#8B5CF6','#F472B6','#0EA5E9'];
+  // curM = currentMonthIndex() (computed at the top of renderBalance, called fresh on every render/refresh) —
+  // this already tracks the real current month automatically, it was never hardcoded to July.
+  const assetClassTotal = Object.values(byAssetClass).reduce((a,b)=>a+b,0);
+  const subCat2Total = Object.values(bySubCat2).reduce((a,b)=>a+b,0);
+  setTimeout(()=>{
+    makeChart('chartBsAssetClass','doughnut',{ labels:Object.keys(byAssetClass), datasets:[{data:Object.values(byAssetClass), backgroundColor:paletteBS,
+      datalabels:{ display:true, color:'#fff', font:{size:11,weight:'700'}, formatter:(v)=> assetClassTotal? fmtPct(v/assetClassTotal*100) : '' }
+    }] },{ plugins:{ datalabels:{display:true} } });
+    makeChart('chartBsSubCat2','doughnut',{ labels:Object.keys(bySubCat2), datasets:[{data:Object.values(bySubCat2), backgroundColor:paletteBS,
+      datalabels:{ display:true, color:'#fff', font:{size:11,weight:'700'}, formatter:(v)=> subCat2Total? fmtPct(v/subCat2Total*100) : '' }
+    }] },{ plugins:{ datalabels:{display:true} } });
+  },0);
+}
+
+/* =========================================================================
+   SECTION: 06 · INVERSIONES
+========================================================================= */
+function renderInversiones(){
+  const c = document.getElementById('sec-inversiones'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">06 · Investment Portfolio</span><h3>Investment Portfolio</h3><div class="desc">Posiciones abiertas desde Trades Sheet, en vivo</div>'));
+
+  const trades = (RAW.portfolio||[]).filter(t=>t['Position Status']==='Open');
+  const valueField = t => num(t['Value Position\nUSD'] !== undefined ? t['Value Position\nUSD'] : t['Value Position USD']);
+  const pnlField = t => num(t['Current Position Net PnL (USD)']);
+  const totalValue = trades.reduce((s,t)=>s+valueField(t),0);
+
+  // Asset allocation by Asset Class
+  const byClass = {};
+  trades.forEach(t=>{ const k=t['Asset Class']||'Otros'; byClass[k]=(byClass[k]||0)+valueField(t); });
+  const g = el('div','grid grid-2');
+  const chartCard = el('div','card chart-card');
+  chartCard.innerHTML = '<h4>Asset Allocation (USD-equiv.)</h4><div class="chart-wrap"><canvas id="chartAlloc"></canvas></div>';
+  g.appendChild(chartCard);
+
+  // Group same-ticker positions together: sum Value and P/L, and compute the WEIGHTED average PnL% —
+  // the correct formula for combining 2+ open positions of the same ticker is (sum of P/L) / (sum of
+  // invested) × 100, never a plain average of each position's individual PnL% (that would over/under-weight
+  // smaller vs larger positions).
+  const byTicker = {};
+  trades.forEach(t=>{
+    const k = t.Ticker || t.Name || '—';
+    if(!byTicker[k]) byTicker[k] = { ticker:k, assetClass:t['Asset Class']||'', value:0, invested:0, pnl:0, positions:0 };
+    byTicker[k].value += valueField(t);
+    byTicker[k].invested += num(t['Net Invested']);
+    byTicker[k].pnl += pnlField(t);
+    byTicker[k].positions += 1;
+  });
+  const grouped = Object.values(byTicker).map(g2=>({ ...g2, pnlPct: g2.invested ? (g2.pnl/g2.invested*100) : 0 }));
+
+  // Sortable table headers (click to sort by that column, click again to flip direction).
+  const tblCard = el('div','card');
+  g.appendChild(tblCard);
+  if(!STATE.inversionesSort) STATE.inversionesSort = { key:'value', dir:-1 };
+  const columns = [
+    {key:'ticker', label:'Ticker', num:false},
+    {key:'assetClass', label:'Clase', num:false},
+    {key:'value', label:'Valor (USD)', num:true},
+    {key:'pnl', label:'Total P/L (USD)', num:true},
+    {key:'pnlPct', label:'PnL %', num:true}
+  ];
+  function renderPositionsTable(){
+    const s = STATE.inversionesSort;
+    const rows = grouped.slice().sort((a,b)=>{
+      const av=a[s.key], bv=b[s.key];
+      // dir=-1 (default) => descending (largest first); dir=1 => ascending.
+      if(typeof av === 'string') return s.dir * av.localeCompare(bv);
+      return s.dir * (av - bv);
+    });
+    const rowsHtml = rows.map(r=>{
+      const posNote = r.positions>1 ? ' <span class="small-note" style="display:inline;">('+r.positions+' pos.)</span>' : '';
+      return '<tr><td>'+r.ticker+posNote+'</td><td>'+r.assetClass+'</td><td class="num">'+fmt(r.value,'Dollars')+'</td>'+
+        '<td class="num '+(r.pnl>=0?'pos':'neg')+'">'+fmt(r.pnl,'Dollars')+'</td>'+
+        '<td class="num '+(r.pnlPct>=0?'pos':'neg')+'">'+fmtPct(r.pnlPct)+'</td></tr>';
+    }).join('');
+    const headHtml = columns.map(col=>{
+      const arrow = s.key===col.key ? (s.dir===-1?' ▼':' ▲') : '';
+      return '<th'+(col.num?' class="num"':'')+' style="cursor:pointer;user-select:none;" data-key="'+col.key+'">'+col.label+arrow+'</th>';
+    }).join('');
+    tblCard.innerHTML = '<h4 style="color:var(--navy);font-size:13.5px;margin-bottom:10px;">Posiciones Abiertas (agrupadas por ticker — '+rows.length+')</h4>'+
+      '<div style="max-height:420px;overflow-y:auto;">'+
+      '<table><thead><tr>'+headHtml+'</tr></thead><tbody>'+rowsHtml+'</tbody></table>'+
+      '</div><div class="small-note">Click en un encabezado para ordenar (mayor a menor / menor a mayor). PnL % ponderado por invertido cuando hay más de una posición del mismo ticker.</div>';
+    tblCard.querySelectorAll('th[data-key]').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.key;
+        if(STATE.inversionesSort.key===key) STATE.inversionesSort.dir *= -1;
+        else STATE.inversionesSort = { key, dir:-1 };
+        renderPositionsTable();
+      });
+    });
+  }
+  renderPositionsTable();
+
+  // IMPORTANT: append g to the live document BEFORE calling makeChart — calling makeChart while the canvas
+  // is still inside a detached div means document.getElementById returns null and the chart silently no-ops.
+  c.appendChild(g);
+  const palette6 = [CONFIG.palette.navy,CONFIG.palette.teal,CONFIG.palette.amber,CONFIG.palette.ice2,CONFIG.palette.green,CONFIG.palette.red,'#8B5CF6','#F472B6'];
+  const classTotal = Object.values(byClass).reduce((a,b)=>a+b,0);
+  makeChart('chartAlloc','doughnut',{ labels:Object.keys(byClass), datasets:[{data:Object.values(byClass), backgroundColor:palette6,
+    datalabels:{ display:true, color:'#fff', font:{size:11,weight:'700'}, formatter:(v)=> classTotal? fmtPct(v/classTotal*100) : '' }
+  }] },{ plugins:{ datalabels:{display:true} } });
+
+  // ROI summary
+  const invested = trades.reduce((s,t)=>s+num(t['Net Invested']),0);
+  const pnl = totalValue - invested;
+  const roi = invested? (pnl/invested*100) : 0;
+  const g2 = el('div','grid grid-3'); g2.style.marginTop='16px';
+  g2.appendChild(el('div','card kpi-card','<div class="label">Valor Total Cartera</div><div class="value">'+fmt(totalValue,'Dollars')+'</div>'));
+  g2.appendChild(el('div','card kpi-card','<div class="label">Neto Invertido</div><div class="value">'+fmt(invested,'Dollars')+'</div>'));
+  g2.appendChild(el('div','card kpi-card','<div class="label">ROI No Realizado</div><div class="value '+(roi>=0?'pos':'neg')+'">'+fmtPct(roi)+'</div>'));
+  c.appendChild(g2);
+
+  // Portfolio value evolution — SAVES/INVESTMENTS sheet, monthly. Two filters: Currency (single-select)
+  // and Métricas (multi-select checkbox dropdown) to pick which of the 6 requested rows to plot.
+  const siRows = sheetObjects('SAVES/INVESTMENTS').filter(rowYearOk);
+  const SI_METRICS = [
+    {key:'Total Account Value', label:'Total Value Account'},
+    {key:'NET INCOME Profit', label:'NET INCOME Profit'},
+    {key:'Total Initial Investment', label:'Total Initial Investment'},
+    {key:'Total Emergency Fund', label:'Total Emergency Fund'},
+    {key:'Property and Equipment Value', label:'Property and Equipment Value'},
+    {key:'Total Savings', label:'Total Savings'}
+  ];
+  if(!STATE.savesFilter) STATE.savesFilter = { currency:'Dollars', metrics: SI_METRICS.map(m=>m.key) };
+  const curMSaves = currentMonthIndex();
+  const savesCard = el('div','card chart-card'); savesCard.style.marginTop='16px';
+  const curSelHtml = '<select id="savesCurSel" style="padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;font-family:inherit;color:var(--navy);font-weight:600;">'+
+    ['Pesos','Dollars','Euros'].map(cur=>'<option value="'+cur+'"'+(STATE.savesFilter.currency===cur?' selected':'')+'>'+CONFIG.currencyLabels[cur]+'</option>').join('')+'</select>';
+  savesCard.innerHTML = '<h4>Evolución del Portfolio — SAVES/INVESTMENTS</h4>'+
+    '<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px;position:relative;">'+
+    '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12.5px;font-weight:600;color:#64748B;">Moneda:</span>'+curSelHtml+'</div>'+
+    '<div style="position:relative;">'+
+      '<button id="savesMetricsBtn" type="button" style="padding:6px 12px;border-radius:8px;border:1px solid #CBD5E1;background:#fff;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;">Métricas ▾</button>'+
+      '<div id="savesMetricsPanel" style="display:none;position:absolute;top:36px;left:0;z-index:10;background:#fff;border:1px solid #CBD5E1;border-radius:8px;padding:10px 14px;box-shadow:0 4px 12px rgba(0,0,0,0.1);min-width:230px;">'+
+        SI_METRICS.map(m=>'<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 0;cursor:pointer;"><input type="checkbox" data-metric="'+m.key+'" '+(STATE.savesFilter.metrics.includes(m.key)?'checked':'')+'> '+m.label+'</label>').join('')+
+      '</div>'+
+    '</div>'+
+    '</div>'+
+    '<div class="chart-wrap"><canvas id="chartSaves"></canvas></div>';
+  c.appendChild(savesCard);
+  function drawSavesChart(){
+    const cur = STATE.savesFilter.currency;
+    const palette6b = [CONFIG.palette.navy,CONFIG.palette.teal,CONFIG.palette.amber,CONFIG.palette.red,CONFIG.palette.green,'#8B5CF6'];
+    const datasets = SI_METRICS.filter(m=>STATE.savesFilter.metrics.includes(m.key)).map((m,i)=>{
+      const row = siRows.find(r=>matchStr(r.Currency,cur) && r.Category===m.key);
+      return { label:m.label, data: monthSeries(row||{}, curMSaves), borderColor: palette6b[i%palette6b.length], backgroundColor:'transparent', tension:.25 };
+    });
+    makeChart('chartSaves','line',{ labels:MONTHS_ES.slice(0,curMSaves+1), datasets });
+  }
+  drawSavesChart();
+  savesCard.querySelector('#savesCurSel').addEventListener('change',(e)=>{ STATE.savesFilter.currency=e.target.value; drawSavesChart(); });
+  const metricsBtn = savesCard.querySelector('#savesMetricsBtn');
+  const metricsPanel = savesCard.querySelector('#savesMetricsPanel');
+  metricsBtn.addEventListener('click', ()=>{ metricsPanel.style.display = metricsPanel.style.display==='none' ? 'block' : 'none'; });
+  document.addEventListener('click',(e)=>{ if(savesCard.isConnected && !savesCard.contains(e.target)) metricsPanel.style.display='none'; });
+  savesCard.querySelectorAll('#savesMetricsPanel input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const key = cb.dataset.metric;
+      if(cb.checked){ if(!STATE.savesFilter.metrics.includes(key)) STATE.savesFilter.metrics.push(key); }
+      else { STATE.savesFilter.metrics = STATE.savesFilter.metrics.filter(k=>k!==key); }
+      drawSavesChart();
+    });
+  });
+}
+
+/* =========================================================================
+   SECTION: 07 · BUDGET
+========================================================================= */
+function renderBudget(){
+  const c = document.getElementById('sec-budget'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">07 · Budget</span><h3>Budget Goal vs. Actual</h3><div class="desc">Presupuesto vs. costo real por moneda</div>'));
+
+  const pills = el('div','pills'); const body = el('div');
+  ['Pesos','Dollars','Euros'].forEach((cur,i)=>{
+    const p = el('div','pill'+(i===0?' active':''), CONFIG.currencyLabels[cur]); p.dataset.cur=cur;
+    p.addEventListener('click',()=>{ pills.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); renderBudgetBody(body,cur); });
+    pills.appendChild(p);
+  });
+  c.appendChild(pills); c.appendChild(body);
+  renderBudgetBody(body,'Pesos');
+}
+function renderBudgetBody(body, cur){
+  body.innerHTML='';
+  const curM = currentMonthIndex();
+  const budget = sheetObjects('BUDGET').filter(rowYearOk);
+  const overview = sheetObjects('OVERVIEW').filter(rowYearOk);
+  // BUDGET mixes individual line items with several overlapping "Total" rows for the same currency.
+  // Confirmed with Pato: the correct pair is the exact rows "Total Fix Cost" + "Total Variable Cost"
+  // (not the "Cost / TOTAL Fix Cost" variant, which is a different, inconsistent figure in this sheet).
+  const budgetFixRow = findRowExact(budget, {Currency:cur, Category:'Total Fix Cost'});
+  const budgetVarRow = findRowExact(budget, {Currency:cur, Category:'Total Variable Cost'});
+  // Actual cost comes from OVERVIEW (verified against the PPT), not the P&L sheet (confirmed stale/broken there).
+  const {costRows} = overviewIncomeCost(overview, cur, curM);
+
+  const budgetSeries = MONTHS.slice(0,curM+1).map(m=> num(budgetFixRow?budgetFixRow[m]:0) + num(budgetVarRow?budgetVarRow[m]:0));
+  const actualSeries = MONTHS.slice(0,curM+1).map(m=> Math.abs(costRows.reduce((s,r)=>s+num(r[m]),0)));
+
+  const chartCard = el('div','card chart-card');
+  chartCard.innerHTML = '<h4>Budget vs. Real · '+CONFIG.currencyLabels[cur]+'</h4><div class="chart-wrap"><canvas id="chartBudget"></canvas></div>';
+  body.appendChild(chartCard);
+  makeChart('chartBudget','bar',{ labels:MONTHS_ES.slice(0,curM+1), datasets:[
+    {label:'Budget Goal', data:budgetSeries, backgroundColor:CONFIG.palette.ice2},
+    {label:'Costo Real', data:actualSeries, backgroundColor:CONFIG.palette.navy}
+  ]});
+
+  const totalBudget = budgetSeries.reduce((a,b)=>a+b,0);
+  const totalActual = actualSeries.reduce((a,b)=>a+b,0);
+  const tblCard = el('div','card'); tblCard.style.marginTop='16px';
+  // Labels made explicit ("Acumulado Ene–<mes>") — the previous generic "Budget Total"/"Actual Total"
+  // labels sat directly under a monthly chart and were being read as if they were July's isolated figure,
+  // when they're actually the Jan-to-current-month cumulative sum (e.g. ~$11.3M ARS Ene–Jul, not a July value).
+  tblCard.innerHTML = '<h4 style="color:var(--navy);font-size:13.5px;margin-bottom:10px;">Acumulado Ene–'+MONTHS_ES[curM]+'</h4>'+
+    '<table><tbody>'+
+    '<tr><td>Budget Total (acumulado)</td><td class="num">'+fmt(totalBudget,cur)+'</td></tr>'+
+    '<tr><td>Actual Total (acumulado)</td><td class="num">'+fmt(totalActual,cur)+'</td></tr>'+
+    '<tr class="total"><td>Desvío acumulado</td><td class="num '+((totalActual-totalBudget)<0?'pos':'neg')+'">'+fmt(totalActual-totalBudget,cur)+'</td></tr>'+
+    '</tbody></table>';
+  body.appendChild(tblCard);
+
+  // Per-month table so July's isolated figure is never confused with the cumulative total above.
+  const monthlyCard = el('div','card'); monthlyCard.style.marginTop='16px';
+  let monthlyRows = '';
+  for(let i=0;i<=curM;i++){
+    const bud = budgetSeries[i]||0, act = actualSeries[i]||0;
+    monthlyRows += '<tr><td>'+MONTHS_ES[i]+'</td><td class="num">'+fmt(bud,cur)+'</td><td class="num">'+fmt(act,cur)+'</td><td class="num '+(act>bud?'neg':'pos')+'">'+fmt(act-bud,cur)+'</td></tr>';
+  }
+  monthlyCard.innerHTML = '<h4 style="color:var(--navy);font-size:13.5px;margin-bottom:10px;">Detalle Mensual · '+CONFIG.currencyLabels[cur]+'</h4>'+
+    '<table><thead><tr><th>Mes</th><th class="num">Budget</th><th class="num">Real</th><th class="num">Desvío</th></tr></thead><tbody>'+monthlyRows+'</tbody></table>';
+  body.appendChild(monthlyCard);
+}
+
+/* =========================================================================
+   SECTION: 08 · RATIOS
+========================================================================= */
+function renderRatios(){
+  const c = document.getElementById('sec-ratios'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">08 · Ratios</span><h3>Ratios Financieros</h3><div class="desc">Financial Support, Net Worth MoM/YTD y liquidez</div>'));
+
+  const curM = currentMonthIndex();
+  const kpis = sheetObjects('KPIs').filter(rowYearOk);
+
+  const g = el('div','grid grid-4');
+  // Scoped explicitly to Financial Statement=BALANCE SHEET, Currency=Ratio (confirmed exact source location) —
+  // values checked live (Jul: MoM% -0.25%, YTD% +14.5%) and are sane/consistent month to month.
+  const nwMoM = findRowExact(kpis, {'Financial Statement':'BALANCE SHEET', Currency:'Ratio', Category:'Net Worth MoM'});
+  const nwMoMPct = findRowExact(kpis, {'Financial Statement':'BALANCE SHEET', Currency:'Ratio', Category:'Net Worth MoM%'});
+  const nwYTD = findRowExact(kpis, {'Financial Statement':'BALANCE SHEET', Currency:'Ratio', Category:'Net Worth YTD'});
+  const nwYTDPct = findRowExact(kpis, {'Financial Statement':'BALANCE SHEET', Currency:'Ratio', Category:'Net Worth YTD%'});
+
+  function kpiFromRow(label, row, isPct){
+    const v = row ? num(row[MONTHS[curM]]) : null;
+    return '<div class="card kpi-card"><div class="label">'+label+'</div><div class="value '+(v===null?'':(v>=0?'pos':'neg'))+'">'+(v===null?'—':(isPct?fmtPct(v):esDecimal(v,2)))+'</div></div>';
+  }
+  g.innerHTML =
+    kpiFromRow('Net Worth MoM %', nwMoMPct, true) +
+    kpiFromRow('Net Worth YTD %', nwYTDPct, true) +
+    kpiFromRow('Net Worth MoM (abs)', nwMoM, false) +
+    kpiFromRow('Net Worth YTD (abs)', nwYTD, false);
+  c.appendChild(g);
+
+  // Liquidity & solvency ratios — confirmed exact labels from KPIs sheet (Financial Statement = BALANCE SHEET, Currency = Ratio)
+  const bsRatio = (needle) => findRow(kpis, {'Financial Statement':'BALANCE SHEET', Currency:'Ratio', Category:needle});
+  const currentRatio = bsRatio('current ratio');
+  const quickRatio = bsRatio('quick ratio');
+  const financialSupport = bsRatio('financial support');
+  const debtQuality = bsRatio('debt quality');
+  const solvencyRatio = bsRatio('solvency ratio');
+
+  const g2b = el('div','grid grid-4'); g2b.style.marginTop='16px';
+  g2b.innerHTML =
+    kpiFromRow('Current Ratio', currentRatio, false) +
+    kpiFromRow('Quick Ratio', quickRatio, false) +
+    kpiFromRow('Financial Support %', financialSupport, true) +
+    kpiFromRow('Debt Quality %', debtQuality, true);
+  c.appendChild(g2b);
+
+  // Cash Flow ratios (Investments/Saves %)
+  const g2 = el('div','grid grid-3'); g2.style.marginTop='16px';
+  ['Pesos','Dollars','Euros'].forEach(cur=>{
+    const row = findRowExact(kpis, {'Financial Statement':'CASH FLOW', Currency:cur, Category:'Total Investments/Saves %'});
+    const v = row ? num(row[MONTHS[curM]]) : null;
+    g2.appendChild(el('div','card kpi-card','<div class="label">Investments/Saves % · '+CONFIG.currencyLabels[cur]+'</div><div class="value '+(v===null?'':(v>=0?'pos':'neg'))+'">'+(v===null?'—':fmtPct(v))+'</div>'));
+  });
+  c.appendChild(g2);
+
+  // Runaway (Runway) ratios — sheet literally spells the field "Runaway" (typo in source data), all under
+  // Financial Statement=FORECAST, Currency=Ratio. Pato asked these be surfaced here too, alongside Forecast.
+  const runwayCats = [
+    'FCF + M1 Runaway (MoM)', 'FIX COST - FCF + M1 Runaway (MoM)',
+    'Budget Runaway (MoM)', 'FIX COST - Budget Runaway (MoM)',
+    'Budget + E.F. Runaway (MoM)', 'FIX COST - Budget + EF Runaway (MoM)'
+  ];
+  const g3 = el('div','grid grid-3'); g3.style.marginTop='16px';
+  runwayCats.forEach(cat=>{
+    const row = findRowExact(kpis, {'Financial Statement':'FORECAST', Currency:'Ratio', Category:cat});
+    const v = row ? num(row[MONTHS[curM]]) : null;
+    g3.appendChild(el('div','card kpi-card','<div class="label">'+cat+'</div><div class="value '+(v===null?'':(v<0?'neg':'pos'))+'">'+(v===null?'—':esDecimal(v,1)+' meses')+'</div>'));
+  });
+  c.appendChild(el('div','small-note','Runway proyectado (meses) — fuente: KPIs, Financial Statement=FORECAST, Currency=Ratio.'));
+  c.appendChild(g3);
+
+  c.appendChild(el('div','small-note','Solvency Ratio disponible en KPIs pero no graficado arriba por espacio — sumalo si lo necesitás viendo la fila "Solvency Ratio" (Financial Statement=BALANCE SHEET, Currency=Ratio).'));
+}
+
+/* =========================================================================
+   SECTION: 09 · FORECAST
+========================================================================= */
+function renderForecast(){
+  const c = document.getElementById('sec-forecast'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">09 · Forecast</span><h3>Emergency Fund &amp; Runway</h3><div class="desc">Cobertura de fondo de emergencia y proyección de runway</div>'));
+
+  const curM = currentMonthIndex();
+  const forecast = sheetObjects('FORECAST',1).filter(rowYearOk);
+  const kpis = sheetObjects('KPIs').filter(rowYearOk);
+  const efActual = findRow(forecast, {Currency:'Dollars', Name:'emergency fund'});
+  // EF target ("Emergency Fund (6 months)") lives in the KPIs sheet, not FORECAST — confirmed exact row.
+  const efGoal = findRow(kpis, {'Financial Statement':'FORECAST', Currency:'Dollars', Category:'emergency fund (6'});
+  // Extra series Pato asked for on the EF chart — exact Category match (not substring: "FIX COST - TOTAL FCF"
+  // is itself a substring of nothing else, but "TOTAL FCF" IS a substring of "FIX COST - TOTAL FCF", so we
+  // match Category strictly and pick the "+ M1" row within it).
+  function forecastRow(rows, cur, category, nameNeedle){
+    return rows.find(r => matchStr(r.Currency,cur) && String(r.Category||'').trim().toLowerCase()===category.trim().toLowerCase() && matchStr(r.Name,nameNeedle)) || null;
+  }
+  const totalFcfM1 = forecastRow(forecast, 'Dollars', 'TOTAL FCF', 'm1');
+  const fixCostTotalFcfM1 = forecastRow(forecast, 'Dollars', 'FIX COST - TOTAL FCF', 'm1');
+  // Runway lives in KPIs too, spelled "Runaway" in the sheet (Financial Statement=FORECAST, Currency=Ratio).
+  const runway = findRow(kpis, {'Financial Statement':'FORECAST', Currency:'Ratio', Category:'fix cost - fcf + m1 runaway'}) ||
+                 findRow(kpis, {'Financial Statement':'FORECAST', Currency:'Ratio', Category:'runaway'});
+  const runway2 = findRowExact(kpis, {'Financial Statement':'FORECAST', Currency:'Ratio', Category:'FCF + M1 Runaway (MoM)'});
+  const runway1 = findRowExact(kpis, {'Financial Statement':'FORECAST', Currency:'Ratio', Category:'FIX COST - FCF + M1 Runaway (MoM)'});
+
+  const chartCard = el('div','card chart-card');
+  chartCard.innerHTML = '<h4>Emergency Fund — Actual vs. Objetivo (USD)</h4><div class="chart-wrap"><canvas id="chartEF"></canvas></div>';
+  c.appendChild(chartCard);
+  if(efActual){
+    makeChart('chartEF','line',{
+      labels: MONTHS_ES,
+      datasets:[
+        {label:'EF Actual', data:MONTHS.map(m=>num(efActual[m])), borderColor:CONFIG.palette.teal, backgroundColor:'transparent', tension:.2},
+        {label:'Objetivo', data: efGoal? MONTHS.map(m=>num(efGoal[m])) : [], borderColor:CONFIG.palette.red, borderDash:[6,4], backgroundColor:'transparent', tension:.2},
+        {label:'TOTAL FCF + M1', data: totalFcfM1? MONTHS.map(m=>num(totalFcfM1[m])) : [], borderColor:CONFIG.palette.navy, backgroundColor:'transparent', tension:.2},
+        {label:'FIX COST - TOTAL FCF + M1', data: fixCostTotalFcfM1? MONTHS.map(m=>num(fixCostTotalFcfM1[m])) : [], borderColor:CONFIG.palette.amber, borderDash:[3,3], backgroundColor:'transparent', tension:.2}
+      ]
+    });
+  }
+
+  if(runway1 || runway2 || runway){
+    const chartCard2 = el('div','card chart-card'); chartCard2.style.marginTop='16px';
+    chartCard2.innerHTML = '<h4>Runway Proyectado (meses)</h4><div class="chart-wrap"><canvas id="chartRunway"></canvas></div>';
+    c.appendChild(chartCard2);
+    const runwayLabelOpts = {display:true, anchor:'end', align:'end', font:{size:9.5,weight:'600'}, formatter:v=>esDecimal(v,1)};
+    const ds = [];
+    if(runway2) ds.push({label:'FCF + M1 Runaway (MoM)', data:MONTHS.map(m=>num(runway2[m])), backgroundColor:CONFIG.palette.teal, datalabels:Object.assign({color:CONFIG.palette.teal},runwayLabelOpts)});
+    if(runway1) ds.push({label:'FIX COST - FCF + M1 Runaway (MoM)', data:MONTHS.map(m=>num(runway1[m])), backgroundColor:CONFIG.palette.navy, datalabels:Object.assign({color:CONFIG.palette.navy},runwayLabelOpts)});
+    if(!ds.length && runway){ const series = MONTHS.map(m=>num(runway[m])); ds.push({data:series, backgroundColor: series.map(v=>v<0?CONFIG.palette.red:CONFIG.palette.navy), datalabels:Object.assign({color:CONFIG.palette.navy},runwayLabelOpts)}); }
+    makeChart('chartRunway','bar',{ labels:MONTHS_ES, datasets:ds},{ plugins:{datalabels:{display:false}} });
+  }
+
+  const efValNow = efActual? num(efActual[MONTHS[curM]]) : null;
+  const efGoalNow = efGoal? num(efGoal[MONTHS[curM]]) : null;
+  if(efValNow!==null && efGoalNow){
+    const pct = efValNow/efGoalNow*100;
+    const g = el('div','grid grid-3'); g.style.marginTop='16px';
+    g.appendChild(el('div','card kpi-card','<div class="label">EF Actual</div><div class="value">'+fmt(efValNow,'Dollars')+'</div>'));
+    g.appendChild(el('div','card kpi-card','<div class="label">Objetivo</div><div class="value">'+fmt(efGoalNow,'Dollars')+'</div>'));
+    g.appendChild(el('div','card kpi-card','<div class="label">Cobertura</div><div class="value '+(pct>=100?'pos':(pct>=60?'warn':'neg'))+'">'+fmtPct(pct)+'</div>'));
+    c.appendChild(g);
+  }
+}
+
+/* =========================================================================
+   SECTION: 10 · INSIGHTS  (auto-generado a partir de los datos en vivo)
+========================================================================= */
+function renderInsights(){
+  const c = document.getElementById('sec-insights'); c.innerHTML='';
+  c.appendChild(el('div','section-header',
+    '<span class="tag">10 · Insights</span><h3>Riesgo, Concentración &amp; Recomendaciones</h3><div class="desc">Generado automáticamente a partir de los datos cargados</div>'));
+
+  const trades = (RAW.portfolio||[]).filter(t=>t['Position Status']==='Open');
+  const valueField = t => num(t['Value Position\nUSD'] !== undefined ? t['Value Position\nUSD'] : t['Value Position USD']);
+  const totalValue = trades.reduce((s,t)=>s+valueField(t),0);
+  const insights = [];
+
+  // Concentration by Ticker
+  const byTicker = {};
+  trades.forEach(t=>{ const k=t.Ticker||t.Name; byTicker[k]=(byTicker[k]||0)+valueField(t); });
+  const topTicker = Object.entries(byTicker).sort((a,b)=>b[1]-a[1])[0];
+  if(topTicker && totalValue){
+    const pct = topTicker[1]/totalValue*100;
+    insights.push({ level: pct>25?'alert':(pct>15?'warn':'ok'), title:'Concentración por posición', text: topTicker[0]+' representa '+fmtPct(pct)+' de la cartera abierta ('+fmt(topTicker[1],'Dollars')+').' });
+  }
+  // Leverage exposure — includes TQQQ/XS2D/LQQ by ticker, not just the Leverage field (see isLeveragedPosition).
+  const leveraged = trades.filter(isLeveragedPosition);
+  const levValue = leveraged.reduce((s,t)=>s+valueField(t),0);
+  if(totalValue){
+    const pct = levValue/totalValue*100;
+    insights.push({ level: pct>35?'alert':(pct>20?'warn':'ok'), title:'Exposición a instrumentos apalancados', text: fmtPct(pct)+' de la cartera abierta está en ETFs apalancados o derivados (TQQQ/XS2D/LQQ/BTC futures). Objetivo de referencia: ≤35%.' });
+  }
+  // Worst performer
+  const worst = trades.slice().sort((a,b)=>num(a['Current Position Total PnL %'])-num(b['Current Position Total PnL %']))[0];
+  if(worst){
+    insights.push({ level: num(worst['Current Position Total PnL %'])<-20?'alert':'warn', title:'Posición con peor performance', text: (worst.Ticker||worst.Name)+': '+fmtPct(num(worst['Current Position Total PnL %']))+' PnL total.' });
+  }
+  // Emergency fund coverage
+  const curM = currentMonthIndex();
+  const forecast = sheetObjects('FORECAST',1).filter(rowYearOk);
+  const kpis = sheetObjects('KPIs').filter(rowYearOk);
+  const efActual = findRow(forecast, {Currency:'Dollars', Name:'emergency fund'});
+  const efGoal = findRow(kpis, {'Financial Statement':'FORECAST', Currency:'Dollars', Category:'emergency fund (6'});
+  if(efActual && efGoal){
+    const pct = num(efActual[MONTHS[curM]]) / num(efGoal[MONTHS[curM]]) * 100;
+    insights.push({ level: pct>=100?'ok':(pct>=60?'warn':'alert'), title:'Cobertura Emergency Fund', text: 'EF cubre '+fmtPct(pct)+' del objetivo de 6 meses de costos fijos.' });
+  }
+  // Runway
+  const runway = findRow(kpis, {'Financial Statement':'FORECAST', Currency:'Ratio', Category:'fix cost - fcf + m1 runaway'}) ||
+                 findRow(kpis, {'Financial Statement':'FORECAST', Currency:'Ratio', Category:'runaway'});
+  if(runway){
+    const negMonth = MONTHS.findIndex(m => num(runway[m])<0 && runway[m]!=='');
+    if(negMonth>-1) insights.push({ level:'alert', title:'Runway proyectado cruza a negativo', text:'El runway proyectado cae por debajo de 0 en '+MONTHS_ES[negMonth]+'. Revisar ingresos extraordinarios o reducir costo fijo.' });
+  }
+
+  const grid = el('div','grid grid-2');
+  insights.forEach(ins=>{
+    const cls = ins.level==='alert'?'alert':(ins.level==='warn'?'warn':'');
+    grid.appendChild(el('div','card insight-card '+cls, '<h5>'+ins.title+'</h5><p>'+ins.text+'</p>'));
+  });
+  if(!insights.length) grid.appendChild(el('div','card','Sin datos suficientes aún para generar insights.'));
+  c.appendChild(grid);
+
+  c.appendChild(el('div','small-note','Estos insights se recalculan en cada actualización de datos. Los umbrales (concentración, leverage, EF) son configurables en el código fuente del dashboard.'));
+}
+
+/* =========================================================================
+   INIT
+========================================================================= */
+loadAll();
+</script>
+</body>
+</html>
